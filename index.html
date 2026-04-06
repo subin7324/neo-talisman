@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEO-TALISMAN</title>
+    <link href="https://fonts.googleapis.com/css2?family=Island+Moments&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #141918;
+            --point-teal: #008080;
+            --point-yellow: #FFFF00;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: white;
+            font-family: 'Courier New', Courier, monospace;
+            overflow-x: hidden;
+        }
+
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            outline: none;
+            z-index: 1;
+        }
+
+        #content-wrapper {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+        }
+
+        .section {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+        }
+
+        h1 {
+            font-family: 'Island Moments', cursive; 
+            font-size: 7rem; /* 사이즈 조금 더 축소 */
+            font-weight: 100; /* 최대한 얇게 설정 */
+            letter-spacing: 1px;
+            margin: 0;
+            color: rgba(255, 255, 255, 0.9); /* 너무 쨍하지 않게 살짝 투명도 */
+            /* 두꺼워 보이게 만드는 그림자 제거 */
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5); 
+            transform: rotate(-1deg);
+        }
+
+        .input-section {
+            opacity: 0;
+            transition: opacity 1.5s ease;
+        }
+
+        .input-section.visible {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        input {
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid var(--point-teal);
+            color: white;
+            font-size: 2rem;
+            padding: 10px;
+            width: 400px;
+            text-align: center;
+            outline: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="content-wrapper">
+        <section class="section">
+            <div style="text-align: center;">
+                <h1>NEO-TALISMAN</h1>
+                <p style="letter-spacing: 4px; font-weight: bold; margin-top: 0px; color: rgba(255,255,255,0.5); font-size: 0.8rem;">DIGITAL CURSE & BLESSING ALGORITHM</p>
+            </div>
+        </section>
+
+        <section class="section input-section" id="ritual-section">
+            <p>당신의 고민 혹은 소망을 입력하십시오.</p>
+            <input type="text" placeholder="TYPE YOUR WISH..." id="wishInput" spellcheck="false">
+        </section>
+    </div>
+
+    <script id="base-vs" type="x-shader/x-vertex">
+        varying vec2 vUv;
+        void main() { vUv = uv; gl_Position = vec4(position, 1.0); }
+    </script>
+
+    <script id="fluid-fs" type="x-shader/x-fragment">
+        precision highp float;
+        uniform sampler2D tPrev;
+        uniform vec2 uMouse;
+        uniform vec2 uVelo;
+        varying vec2 vUv;
+        void main() {
+            vec2 uv = vUv;
+            vec4 prev = texture2D(tPrev, uv);
+            float dist = distance(uv, uMouse);
+            float m = smoothstep(0.08, 0.0, dist) * length(uVelo) * 10.0;
+            vec2 offset = 1.0 / vec2(800.0, 600.0);
+            vec4 n = texture2D(tPrev, uv + vec2(0.0, offset.y));
+            vec4 s = texture2D(tPrev, uv - vec2(0.0, offset.y));
+            vec4 e = texture2D(tPrev, uv + vec2(offset.x, 0.0));
+            vec4 w = texture2D(tPrev, uv - vec2(offset.x, 0.0));
+            float nextVal = (n.r + s.r + e.r + w.r) * 0.5 - prev.g;
+            nextVal *= 0.97; 
+            gl_FragColor = vec4(nextVal + m, prev.r, 0.0, 1.0);
+        }
+    </script>
+
+    <script id="display-fs" type="x-shader/x-fragment">
+        precision highp float;
+        uniform sampler2D tFluid;
+        uniform sampler2D tScene;
+        varying vec2 vUv;
+        void main() {
+            vec4 fluid = texture2D(tFluid, vUv);
+            float distortion = fluid.r * 0.08;
+            float r = texture2D(tScene, vUv + distortion * 1.5).r;
+            float g = texture2D(tScene, vUv + distortion).g;
+            float b = texture2D(tScene, vUv + distortion * 0.5).b;
+            gl_FragColor = vec4(r, g, b, 1.0);
+        }
+    </script>
+
+    <script>
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setClearColor(0x141918, 1);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const mainSphere = new THREE.Mesh(
+            new THREE.IcosahedronGeometry(1.5, 1),
+            new THREE.MeshBasicMaterial({ color: 0x008080, wireframe: true, transparent: true, opacity: 0.8 })
+        );
+        scene.add(mainSphere);
+
+        const talismans = [];
+        for (let i = 0; i < 200; i++) {
+            const t = new THREE.Mesh(
+                new THREE.PlaneGeometry(0.1, 0.2),
+                new THREE.MeshBasicMaterial({ color: Math.random() > 0.5 ? 0xFF0000 : 0xFFFF00, side: THREE.DoubleSide, transparent: true, opacity: 0.6 })
+            );
+            t.position.set((Math.random()-0.5)*15, Math.random()*20, (Math.random()-0.5)*10);
+            scene.add(t);
+            talismans.push(t);
+        }
+        camera.position.z = 5;
+
+        const sceneTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
+        let fboA = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
+        let fboB = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
+        const orthoCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+        const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), null);
+
+        const fluidMat = new THREE.ShaderMaterial({
+            uniforms: { tPrev: { value: null }, uMouse: { value: new THREE.Vector2() }, uVelo: { value: new THREE.Vector2() } },
+            vertexShader: document.getElementById('base-vs').textContent,
+            fragmentShader: document.getElementById('fluid-fs').textContent
+        });
+
+        const displayMat = new THREE.ShaderMaterial({
+            uniforms: { tFluid: { value: null }, tScene: { value: null } },
+            vertexShader: document.getElementById('base-vs').textContent,
+            fragmentShader: document.getElementById('display-fs').textContent
+        });
+
+        let mouse = new THREE.Vector2(), lastMouse = new THREE.Vector2(), velo = new THREE.Vector2();
+        let scrollY = 0;
+
+        window.addEventListener('mousemove', e => {
+            mouse.set(e.clientX/window.innerWidth, 1 - e.clientY/window.innerHeight);
+            velo.subVectors(mouse, lastMouse);
+            lastMouse.copy(mouse);
+        });
+
+        window.addEventListener('scroll', () => {
+            scrollY = window.scrollY;
+            const ritual = document.getElementById('ritual-section');
+            if (scrollY > 300) ritual.classList.add('visible');
+            else ritual.classList.remove('visible');
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            mainSphere.rotation.y += 0.01;
+            mainSphere.scale.setScalar(1 + (scrollY * 0.001));
+            talismans.forEach(t => {
+                t.position.y -= 0.02 + (scrollY * 0.00005);
+                if (t.position.y < -10) t.position.y = 10;
+            });
+
+            renderer.setRenderTarget(sceneTarget);
+            renderer.render(scene, camera);
+
+            fluidMat.uniforms.tPrev.value = fboA.texture;
+            fluidMat.uniforms.uMouse.value = mouse;
+            fluidMat.uniforms.uVelo.value = velo;
+            quad.material = fluidMat;
+            renderer.setRenderTarget(fboB);
+            renderer.render(quad, orthoCam);
+
+            displayMat.uniforms.tFluid.value = fboB.texture;
+            displayMat.uniforms.tScene.value = sceneTarget.texture;
+            quad.material = displayMat;
+            renderer.setRenderTarget(null);
+            renderer.render(quad, orthoCam);
+
+            let temp = fboA; fboA = fboB; fboB = temp;
+            velo.multiplyScalar(0.9);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            const w = window.innerWidth, h = window.innerHeight;
+            camera.aspect = w / h; camera.updateProjectionMatrix();
+            renderer.setSize(w, h); sceneTarget.setSize(w, h);
+            fboA.setSize(w, h); fboB.setSize(w, h);
+        });
+    </script>
+</body>
+</html>
