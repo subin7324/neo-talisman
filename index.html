@@ -47,13 +47,18 @@
 
         h1 {
             font-family: 'Island Moments', cursive; 
-            font-size: 7rem;
-            font-weight: 100;
-            letter-spacing: 1px;
+            font-size: 9rem;
+            font-weight: 900;
+            letter-spacing: -2px;
             margin: 0;
-            color: rgba(255, 255, 255, 0.9);
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5); 
-            transform: rotate(-1deg);
+            /* 골드 컬러 적용 */
+            color: rgba(255, 244, 211, 0.85); 
+            /* 골드톤 3중 그림자 */
+            text-shadow: 
+                2px 2px 4px rgba(0, 0, 0, 0.9),
+                0 0 15px rgba(218, 165, 32, 0.6),
+                0 0 30px rgba(0, 0, 0, 0.8);
+            transform: rotate(0deg);
         }
 
         .input-section {
@@ -76,6 +81,7 @@
             width: 400px;
             text-align: center;
             outline: none;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -85,12 +91,12 @@
         <section class="section">
             <div style="text-align: center;">
                 <h1>NEO-TALISMAN</h1>
-                <p style="letter-spacing: 4px; font-weight: bold; margin-top: 0px; color: rgba(255,255,255,0.5); font-size: 0.8rem;">DIGITAL CURSE & BLESSING ALGORITHM</p>
+                <p style="letter-spacing: 4px; font-weight: bold; margin-top: 0px; color: rgba(255,255,255,0.7); font-size: 1rem;">DIGITAL CURSE & BLESSING ALGORITHM</p>
             </div>
         </section>
 
         <section class="section input-section" id="ritual-section">
-            <p>당신의 고민 혹은 소망을 입력하십시오.</p>
+            <p style="font-weight: bold; font-size: 1.2rem;">당신의 고민 혹은 소망을 입력하십시오.</p>
             <input type="text" placeholder="TYPE YOUR WISH..." id="wishInput" spellcheck="false">
         </section>
     </div>
@@ -130,10 +136,8 @@
         void main() {
             vec4 fluid = texture2D(tFluid, vUv);
             float distortion = fluid.r * 0.08;
-            float r = texture2D(tScene, vUv + distortion * 1.5).r;
-            float g = texture2D(tScene, vUv + distortion).g;
-            float b = texture2D(tScene, vUv + distortion * 0.5).b;
-            gl_FragColor = vec4(r, g, b, 1.0);
+            vec4 sceneColor = texture2D(tScene, vUv + distortion);
+            gl_FragColor = sceneColor;
         }
     </script>
 
@@ -145,11 +149,27 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
+        const sphereGroup = new THREE.Group();
         const mainSphere = new THREE.Mesh(
             new THREE.IcosahedronGeometry(1.5, 1),
-            new THREE.MeshBasicMaterial({ color: 0x008080, wireframe: true, transparent: true, opacity: 0.8 })
+            new THREE.MeshBasicMaterial({ color: 0x008080, wireframe: true, transparent: true, opacity: 1.0 })
         );
-        scene.add(mainSphere);
+        sphereGroup.add(mainSphere);
+
+        for(let i = 1; i <= 3; i++) {
+            const glow = new THREE.Mesh(
+                new THREE.IcosahedronGeometry(1.5 + (i * 0.02), 1),
+                new THREE.MeshBasicMaterial({ 
+                    color: 0x00ffff, 
+                    wireframe: true, 
+                    transparent: true, 
+                    opacity: 0.4 / i,
+                    blending: THREE.AdditiveBlending 
+                })
+            );
+            sphereGroup.add(glow);
+        }
+        scene.add(sphereGroup);
 
         const talismans = [];
         for (let i = 0; i < 200; i++) {
@@ -157,16 +177,14 @@
                 new THREE.PlaneGeometry(0.12, 0.25),
                 new THREE.MeshBasicMaterial({ color: Math.random() > 0.5 ? 0xFF0000 : 0xFFFF00, side: THREE.DoubleSide, transparent: true, opacity: 0.7 })
             );
+            t.scale.setScalar(Math.random() * 1.2 + 0.4);
             t.position.set((Math.random()-0.5)*15, (Math.random()-0.5)*20, (Math.random()-0.5)*10);
-            
-            // 물리 효과를 위한 커스텀 데이터 추가
-            t.userData = {
-                phase: Math.random() * Math.PI * 2,
-                speed: Math.random() * 0.02 + 0.01,
-                drift: Math.random() * 0.02,
-                rotSpeed: Math.random() * 0.05
+            t.userData = { 
+                phase: Math.random() * Math.PI * 2, 
+                speed: Math.random() * 0.02 + 0.01, 
+                drift: Math.random() * 0.02, 
+                rotSpeed: Math.random() * 0.05 
             };
-
             scene.add(t);
             talismans.push(t);
         }
@@ -191,13 +209,11 @@
         });
 
         let mouse = new THREE.Vector2(), lastMouse = new THREE.Vector2(), velo = new THREE.Vector2();
-        let scrollY = 0;
-        let time = 0;
+        let scrollY = 0; let time = 0;
 
         window.addEventListener('mousemove', e => {
             mouse.set(e.clientX/window.innerWidth, 1 - e.clientY/window.innerHeight);
-            velo.subVectors(mouse, lastMouse);
-            lastMouse.copy(mouse);
+            velo.subVectors(mouse, lastMouse); lastMouse.copy(mouse);
         });
 
         window.addEventListener('scroll', () => {
@@ -210,27 +226,19 @@
         function animate() {
             requestAnimationFrame(animate);
             time += 0.02;
-            mainSphere.rotation.y += 0.01;
-            mainSphere.scale.setScalar(1 + (scrollY * 0.001));
+            
+            sphereGroup.rotation.y += 0.01;
+            const baseScale = 1 + (scrollY * 0.001);
+            sphereGroup.scale.setScalar(baseScale);
 
             talismans.forEach(t => {
                 const data = t.userData;
-                
-                // 1. 하강 (스크롤 속도 반영)
-                t.position.y -= data.speed + (scrollY * 0.00005);
-                
-                // 2. 좌우 팔랑거림 (Sine파 이용)
+                t.position.y -= data.speed + (scrollY * 0.00001);
                 t.position.x += Math.sin(time + data.phase) * data.drift;
-                
-                // 3. 종이 회전 (입체적으로 뒤집히는 효과)
                 t.rotation.x = Math.sin(time * 0.8 + data.phase) * 2;
                 t.rotation.y += data.rotSpeed;
                 t.rotation.z = Math.cos(time * 0.5 + data.phase) * 0.5;
-
-                if (t.position.y < -10) {
-                    t.position.y = 10;
-                    t.position.x = (Math.random()-0.5)*15;
-                }
+                if (t.position.y < -10) { t.position.y = 10; t.position.x = (Math.random()-0.5)*15; }
             });
 
             renderer.setRenderTarget(sceneTarget);
