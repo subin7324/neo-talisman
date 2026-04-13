@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NEO-TALISMAN</title>
-    <link href="https://fonts.googleapis.com/css2?family=Island+Moments&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Megrim&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         :root {
@@ -13,90 +13,65 @@
             --point-yellow: #FFFF00;
         }
 
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: var(--bg-color);
-            color: white;
-            font-family: 'Courier New', Courier, monospace;
-            overflow-x: hidden;
-        }
-
-        canvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            outline: none;
-            z-index: 1;
-        }
-
-        #content-wrapper {
-            position: relative;
-            z-index: 2;
-            width: 100%;
-        }
-
-        .section {
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            pointer-events: none;
-        }
-
+        body { margin: 0; padding: 0; background-color: var(--bg-color); color: white; font-family: 'Courier New', Courier, monospace; overflow-x: hidden; transition: background-color 0.8s ease; }
+        canvas { position: fixed; top: 0; left: 0; outline: none; z-index: 1; }
+        #content-wrapper { position: relative; z-index: 2; width: 100%; }
+        .section { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; pointer-events: none; }
+        
         h1 {
-            font-family: 'Island Moments', cursive; 
-            font-size: 9rem;
-            font-weight: 900;
+            font-family: 'Megrim', cursive; 
+            font-size: 4rem;
+            font-weight: 500;
             letter-spacing: -2px;
             margin: 0;
-            /* 골드 컬러 적용 */
             color: rgba(255, 244, 211, 0.85); 
-            /* 골드톤 3중 그림자 */
-            text-shadow: 
-                2px 2px 4px rgba(0, 0, 0, 0.9),
-                0 0 15px rgba(218, 165, 32, 0.6),
-                0 0 30px rgba(0, 0, 0, 0.8);
-            transform: rotate(0deg);
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.9), 0 0 15px rgba(218, 165, 32, 0.6), 0 0 30px rgba(0, 0, 0, 0.8);
         }
 
-        .input-section {
-            opacity: 0;
-            transition: opacity 1.5s ease;
-        }
-
-        .input-section.visible {
-            opacity: 1;
-            pointer-events: all;
-        }
+        .input-section { opacity: 0; transition: opacity 1.5s ease; }
+        .input-section.visible { opacity: 1; pointer-events: all; }
 
         input {
-            background: transparent;
-            border: none;
-            border-bottom: 2px solid var(--point-teal);
-            color: white;
-            font-size: 2rem;
-            padding: 10px;
-            width: 400px;
-            text-align: center;
-            outline: none;
-            font-weight: bold;
+            background: transparent; border: none; border-bottom: 2px solid var(--point-teal);
+            color: white; font-size: 2rem; padding: 10px; width: 400px; text-align: center;
+            outline: none; font-weight: 300; transition: opacity 0.8s ease;
+        }
+
+        /* 부적 결과창 스타일 */
+        #result-overlay {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            z-index: 100; opacity: 0; pointer-events: none; transition: opacity 2s ease;
+        }
+        .talisman-card {
+            width: 320px; height: 520px; background: rgba(20, 25, 24, 0.95);
+            border: 2px solid #daa520; box-shadow: 0 0 40px rgba(218, 165, 32, 0.4);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            padding: 30px; color: #daa520; font-family: 'Megrim', cursive; text-align: center;
         }
     </style>
 </head>
 <body>
 
+    <div id="result-overlay">
+        <div class="talisman-card">
+            <p style="font-size: 0.7rem; letter-spacing: 8px; margin-bottom: 20px;">NEO-TALISMAN ARCHIVE</p>
+            <div style="width: 100%; height: 1px; background: linear-gradient(90deg, transparent, #daa520, transparent);"></div>
+            <h2 id="final-wish" style="font-size: 2.2rem; margin: 50px 0; word-break: keep-all;"></h2>
+            <div style="width: 100%; height: 1px; background: linear-gradient(90deg, transparent, #daa520, transparent);"></div>
+            <p style="font-size: 0.6rem; color: rgba(218,165,32,0.5); margin-top: 30px; line-height: 1.6;">ALGORITHM BLESSED<br>CURSE DECRYPTED</p>
+        </div>
+    </div>
+
     <div id="content-wrapper">
         <section class="section">
             <div style="text-align: center;">
                 <h1>NEO-TALISMAN</h1>
-                <p style="letter-spacing: 4px; font-weight: bold; margin-top: 0px; color: rgba(255,255,255,0.7); font-size: 1rem;">DIGITAL CURSE & BLESSING ALGORITHM</p>
+                <p style="letter-spacing: 4px; font-weight: bold; margin-top: 0px; color: rgba(255,255,255,0.7); font-size: 0.8rem;">DIGITAL CURSE & BLESSING ALGORITHM</p>
             </div>
         </section>
 
         <section class="section input-section" id="ritual-section">
-            <p style="font-weight: bold; font-size: 1.2rem;">당신의 고민 혹은 소망을 입력하십시오.</p>
+            <p id="ritual-status" style="font-weight: bold; font-size: 1.2rem; transition: opacity 0.5s;">당신의 고민 혹은 소망을 입력하십시오.</p>
             <input type="text" placeholder="TYPE YOUR WISH..." id="wishInput" spellcheck="false">
         </section>
     </div>
@@ -104,6 +79,27 @@
     <script id="base-vs" type="x-shader/x-vertex">
         varying vec2 vUv;
         void main() { vUv = uv; gl_Position = vec4(position, 1.0); }
+    </script>
+
+    <script id="bg-fs" type="x-shader/x-fragment">
+        precision highp float;
+        uniform float uTime;
+        varying vec2 vUv;
+        void main() {
+            vec2 p = vUv;
+            float t = uTime * 0.5;
+            for(float i=1.0; i<4.0; i++){
+                p.x += 0.2/i*sin(i*3.0*p.y+t);
+                p.y += 0.2/i*cos(i*3.0*p.x+t);
+            }
+            vec3 dark = vec3(0.02, 0.05, 0.1);
+            vec3 sand = vec3(0.4, 0.35, 0.25);
+            vec3 glow = vec3(0.2, 0.5, 0.55);
+            float wave = sin(p.x + p.y + t) * 0.5 + 0.5;
+            vec3 col = mix(dark, sand, wave);
+            col += glow * pow(wave, 5.0) * 0.5;
+            gl_FragColor = vec4(col, 1.0);
+        }
     </script>
 
     <script id="fluid-fs" type="x-shader/x-fragment">
@@ -132,68 +128,70 @@
         precision highp float;
         uniform sampler2D tFluid;
         uniform sampler2D tScene;
+        uniform sampler2D tBg;
         varying vec2 vUv;
         void main() {
             vec4 fluid = texture2D(tFluid, vUv);
             float distortion = fluid.r * 0.08;
-            vec4 sceneColor = texture2D(tScene, vUv + distortion);
-            gl_FragColor = sceneColor;
+            float rDist = distortion * 1.2;
+            float gDist = distortion * 1.0;
+            float bDist = distortion * 0.8;
+            float bgR = texture2D(tBg, vUv + rDist * 0.2).r;
+            float bgG = texture2D(tBg, vUv + gDist * 0.2).g;
+            float bgB = texture2D(tBg, vUv + bDist * 0.2).b;
+            vec4 bgColor = vec4(bgR, bgG, bgB, 1.0);
+            float scR = texture2D(tScene, vUv + rDist).r;
+            float scG = texture2D(tScene, vUv + gDist).g;
+            float scB = texture2D(tScene, vUv + bDist).b;
+            float scA = texture2D(tScene, vUv + gDist).a; 
+            vec4 sceneColor = vec4(scR, scG, scB, scA);
+            gl_FragColor = mix(bgColor, sceneColor, sceneColor.a);
         }
     </script>
 
     <script>
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setClearColor(0x141918, 1);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.autoClear = false;
         document.body.appendChild(renderer.domElement);
 
         const sphereGroup = new THREE.Group();
-        const mainSphere = new THREE.Mesh(
-            new THREE.IcosahedronGeometry(1.5, 1),
-            new THREE.MeshBasicMaterial({ color: 0x008080, wireframe: true, transparent: true, opacity: 1.0 })
-        );
+        const mainSphere = new THREE.Mesh(new THREE.IcosahedronGeometry(1.5, 1), new THREE.MeshBasicMaterial({ color: 0x008080, wireframe: true, transparent: true, opacity: 1.0 }));
         sphereGroup.add(mainSphere);
-
         for(let i = 1; i <= 3; i++) {
-            const glow = new THREE.Mesh(
-                new THREE.IcosahedronGeometry(1.5 + (i * 0.02), 1),
-                new THREE.MeshBasicMaterial({ 
-                    color: 0x00ffff, 
-                    wireframe: true, 
-                    transparent: true, 
-                    opacity: 0.4 / i,
-                    blending: THREE.AdditiveBlending 
-                })
-            );
+            const glow = new THREE.Mesh(new THREE.IcosahedronGeometry(1.5 + (i * 0.02), 1), new THREE.MeshBasicMaterial({ color: 0x00ffff, wireframe: true, transparent: true, opacity: 0.4 / i, blending: THREE.AdditiveBlending }));
             sphereGroup.add(glow);
         }
         scene.add(sphereGroup);
 
         const talismans = [];
+        const colors = [0xFF0000, 0xFFFF00, 0xFF1493, 0x00FF7F]; 
+
         for (let i = 0; i < 200; i++) {
-            const t = new THREE.Mesh(
-                new THREE.PlaneGeometry(0.12, 0.25),
-                new THREE.MeshBasicMaterial({ color: Math.random() > 0.5 ? 0xFF0000 : 0xFFFF00, side: THREE.DoubleSide, transparent: true, opacity: 0.7 })
-            );
+            const randomColor = colors[Math.floor(Math.random() * colors.length)];
+            const t = new THREE.Mesh(new THREE.PlaneGeometry(0.12, 0.25), new THREE.MeshBasicMaterial({ color: randomColor, side: THREE.DoubleSide, transparent: true, opacity: 0.7 }));
             t.scale.setScalar(Math.random() * 1.2 + 0.4);
             t.position.set((Math.random()-0.5)*15, (Math.random()-0.5)*20, (Math.random()-0.5)*10);
-            t.userData = { 
-                phase: Math.random() * Math.PI * 2, 
-                speed: Math.random() * 0.02 + 0.01, 
-                drift: Math.random() * 0.02, 
-                rotSpeed: Math.random() * 0.05 
-            };
+            t.userData = { phase: Math.random() * Math.PI * 2, speed: Math.random() * 0.02 + 0.01, drift: Math.random() * 0.02, rotSpeed: Math.random() * 0.05 };
             scene.add(t);
             talismans.push(t);
         }
         camera.position.z = 5;
 
-        const sceneTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
+        const bgScene = new THREE.Scene();
+        const orthoCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+        const bgMat = new THREE.ShaderMaterial({
+            uniforms: { uTime: { value: 0 } },
+            vertexShader: document.getElementById('base-vs').textContent,
+            fragmentShader: document.getElementById('bg-fs').textContent
+        });
+        bgScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), bgMat));
+        let fboBg = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
+        const sceneTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, { format: THREE.RGBAFormat });
         let fboA = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
         let fboB = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
-        const orthoCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
         const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), null);
 
         const fluidMat = new THREE.ShaderMaterial({
@@ -201,47 +199,97 @@
             vertexShader: document.getElementById('base-vs').textContent,
             fragmentShader: document.getElementById('fluid-fs').textContent
         });
-
         const displayMat = new THREE.ShaderMaterial({
-            uniforms: { tFluid: { value: null }, tScene: { value: null } },
+            uniforms: { tFluid: { value: null }, tScene: { value: null }, tBg: { value: null } },
             vertexShader: document.getElementById('base-vs').textContent,
             fragmentShader: document.getElementById('display-fs').textContent
         });
 
         let mouse = new THREE.Vector2(), lastMouse = new THREE.Vector2(), velo = new THREE.Vector2();
-        let scrollY = 0; let time = 0;
+        let scrollY = 0, time = 0;
+
+        let isRitualStarted = false;
+        let isFinished = false;
+        let ritualTime = 0;
 
         window.addEventListener('mousemove', e => {
             mouse.set(e.clientX/window.innerWidth, 1 - e.clientY/window.innerHeight);
             velo.subVectors(mouse, lastMouse); lastMouse.copy(mouse);
         });
-
         window.addEventListener('scroll', () => {
+            if (isRitualStarted) return;
             scrollY = window.scrollY;
             const ritual = document.getElementById('ritual-section');
             if (scrollY > 300) ritual.classList.add('visible');
             else ritual.classList.remove('visible');
         });
 
-        function animate() {
+        // 엔터 입력 시 의식 시작
+        document.getElementById('wishInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && e.target.value.trim() !== "") {
+                isRitualStarted = true;
+                document.getElementById('final-wish').innerText = e.target.value;
+                e.target.disabled = true;
+                e.target.style.opacity = "0";
+                document.getElementById('ritual-status').style.opacity = "0";
+            }
+        });
+
+        function animate(t) {
             requestAnimationFrame(animate);
-            time += 0.02;
-            
-            sphereGroup.rotation.y += 0.01;
-            const baseScale = 1 + (scrollY * 0.001);
-            sphereGroup.scale.setScalar(baseScale);
+            time = t * 0.001;
+            bgMat.uniforms.uTime.value = time;
 
-            talismans.forEach(t => {
-                const data = t.userData;
-                t.position.y -= data.speed + (scrollY * 0.00001);
-                t.position.x += Math.sin(time + data.phase) * data.drift;
-                t.rotation.x = Math.sin(time * 0.8 + data.phase) * 2;
-                t.rotation.y += data.rotSpeed;
-                t.rotation.z = Math.cos(time * 0.5 + data.phase) * 0.5;
-                if (t.position.y < -10) { t.position.y = 10; t.position.x = (Math.random()-0.5)*15; }
-            });
+            if (isRitualStarted) {
+                ritualTime += 0.015;
 
+                if (ritualTime < 2.5) {
+                    // 1단계: 블랙홀 압축
+                    sphereGroup.rotation.y += ritualTime * 0.8;
+                    const compressScale = (1 + (scrollY * 0.001)) * Math.max(0.1, 1.0 - ritualTime * 0.4);
+                    sphereGroup.scale.setScalar(compressScale);
+
+                    talismans.forEach(tal => {
+                        tal.position.lerp(new THREE.Vector3(0, 0, 0), 0.12);
+                        tal.scale.multiplyScalar(0.92);
+                    });
+                    velo.x += (Math.random() - 0.5) * 0.4;
+                    velo.y += (Math.random() - 0.5) * 0.4;
+                } else if (ritualTime < 4.5) {
+                    // 2단계: 화이트아웃 폭발
+                    const blastScale = Math.pow(ritualTime - 2.4, 4) * 60;
+                    sphereGroup.scale.setScalar(blastScale);
+                    mainSphere.material.color.setHex(0xffffff);
+                    const whiteVal = Math.min(255, (ritualTime - 2.5) * 200);
+                    document.body.style.backgroundColor = `rgb(${whiteVal},${whiteVal},${whiteVal})`;
+                } else {
+                    // 3단계: 결과 노출
+                    if (!isFinished) {
+                        document.getElementById('result-overlay').style.opacity = "1";
+                        document.body.style.backgroundColor = "#141918";
+                        sphereGroup.visible = false;
+                        isFinished = true;
+                    }
+                }
+            } else {
+                sphereGroup.rotation.y += 0.01;
+                sphereGroup.scale.setScalar(1 + (scrollY * 0.001));
+
+                talismans.forEach(tal => {
+                    const data = tal.userData;
+                    tal.position.y -= data.speed + (scrollY * 0.00001);
+                    tal.position.x += Math.sin(time + data.phase) * data.drift;
+                    tal.rotation.x = Math.sin(time * 0.8 + data.phase) * 2;
+                    tal.rotation.z = Math.cos(time * 0.5 + data.phase) * 0.5;
+                    tal.rotation.y = Math.sin(time * 2.0 + data.phase * 0.5) * 1.5 * Math.PI; 
+                    if (tal.position.y < -10) { tal.position.y = 10; tal.position.x = (Math.random()-0.5)*15; }
+                });
+            }
+
+            renderer.setRenderTarget(fboBg);
+            renderer.render(bgScene, orthoCam);
             renderer.setRenderTarget(sceneTarget);
+            renderer.clear();
             renderer.render(scene, camera);
 
             fluidMat.uniforms.tPrev.value = fboA.texture;
@@ -253,6 +301,7 @@
 
             displayMat.uniforms.tFluid.value = fboB.texture;
             displayMat.uniforms.tScene.value = sceneTarget.texture;
+            displayMat.uniforms.tBg.value = fboBg.texture;
             quad.material = displayMat;
             renderer.setRenderTarget(null);
             renderer.render(quad, orthoCam);
@@ -260,13 +309,13 @@
             let temp = fboA; fboA = fboB; fboB = temp;
             velo.multiplyScalar(0.9);
         }
-        animate();
+        animate(0);
 
         window.addEventListener('resize', () => {
             const w = window.innerWidth, h = window.innerHeight;
             camera.aspect = w / h; camera.updateProjectionMatrix();
-            renderer.setSize(w, h); sceneTarget.setSize(w, h);
-            fboA.setSize(w, h); fboB.setSize(w, h);
+            renderer.setSize(w, h);
+            sceneTarget.setSize(w, h); fboA.setSize(w, h); fboB.setSize(w, h); fboBg.setSize(w, h);
         });
     </script>
 </body>
