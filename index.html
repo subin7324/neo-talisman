@@ -5,7 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NEO-TALISMAN</title>
     <link href="https://fonts.googleapis.com/css2?family=Megrim&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Noto+Serif+KR:wght@900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
     <style>
         :root {
             --bg-color: #141918;
@@ -13,10 +19,28 @@
             --point-yellow: #FFFF00;
         }
 
-        body { margin: 0; padding: 0; background-color: var(--bg-color); color: white; font-family: 'Courier New', Courier, monospace; overflow-x: hidden; transition: background-color 0.8s ease; }
+        body { 
+            margin: 0; padding: 0; background-color: var(--bg-color); color: white; 
+            font-family: 'Courier New', Courier, monospace; overflow-x: hidden; 
+            transition: background-color 0.8s ease;
+            cursor: none; 
+        }
+
+        /* [수정] 커서 스타일: 더 잘 보이도록 크기 및 글로우 강화 */
+        #custom-cursor {
+            position: fixed; width: 6px; height: 6px; background: var(--point-teal);
+            border-radius: 50%; pointer-events: none; z-index: 10000;
+            box-shadow: 0 0 10px var(--point-teal);
+        }
+        #cursor-follower {
+            position: fixed; width: 50px; height: 50px; border: 1.5px solid var(--point-teal);
+            border-radius: 50%; pointer-events: none; z-index: 9999;
+            box-shadow: inset 0 0 10px rgba(0, 128, 128, 0.4), 0 0 15px rgba(0, 128, 128, 0.2);
+        }
+
         canvas { position: fixed; top: 0; left: 0; outline: none; z-index: 1; }
         #content-wrapper { position: relative; z-index: 2; width: 100%; }
-        .section { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; pointer-events: none; }
+        .section { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; pointer-events: none; position: relative; }
         
         h1 {
             font-family: 'Megrim', cursive; 
@@ -28,6 +52,55 @@
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.9), 0 0 15px rgba(218, 165, 32, 0.6), 0 0 30px rgba(0, 0, 0, 0.8);
         }
 
+        /* 로딩 화면 */
+        #loading-screen {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: #000; z-index: 9999;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            transition: opacity 1s ease, visibility 1s;
+        }
+        .loader-text { color: var(--point-teal); font-size: 0.8rem; letter-spacing: 5px; margin-bottom: 20px; }
+        .loader-bar-container { width: 240px; height: 2px; background: rgba(0, 128, 128, 0.1); position: relative; overflow: hidden; margin-bottom: 15px; display: none; }
+        .loader-bar { position: absolute; top: 0; left: 0; width: 0%; height: 100%; background: var(--point-teal); box-shadow: 0 0 15px var(--point-teal); }
+        .loader-percentage { color: var(--point-teal); font-size: 0.7rem; opacity: 0.6; display: none; }
+        
+        /* 시작 버튼 (사운드 재생용) */
+        #start-btn {
+            background: none; border: 1px solid var(--point-teal); color: var(--point-teal);
+            padding: 15px 40px; font-family: 'Courier New', Courier, monospace;
+            cursor: none; letter-spacing: 3px; font-size: 0.9rem; transition: all 0.3s;
+        }
+        #start-btn:hover { background: rgba(0, 128, 128, 0.2); box-shadow: 0 0 20px var(--point-teal); }
+
+        .m-meta { position: absolute; font-size: 10px; letter-spacing: 5px; color: var(--point-teal); opacity: 0.5; }
+        .scroll-guide { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 30px; }
+        .arrow { width: 1px; height: 50px; background: linear-gradient(to bottom, var(--point-teal), transparent); position: relative; overflow: hidden; }
+        .arrow::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white; animation: arrow-anim 2s infinite; }
+        @keyframes arrow-anim { 0% { transform: translateY(-100%); } 100% { transform: translateY(100%); } }
+
+        .word { 
+            position: absolute; font-family: 'Megrim', cursive; font-size: 6rem; 
+            letter-spacing: -2px; color: rgba(255, 255, 255, 0.338); top: 100vh; opacity: 0;
+            will-change: transform, opacity; text-align: center;
+            filter: blur(10px); transform: scale(0.8);
+        }
+        .word.kr { font-family: 'Courier New', monospace; font-size: 1.2rem; letter-spacing: 12px; }
+        .word.point { color: var(--point-teal); opacity: 0.8 !important; }
+        .word-sub { display: block; font-size: 0.8rem; letter-spacing: 4px; color: rgba(255,255,255,0.4); margin-top: 10px; font-family: 'Pretendard', sans-serif; }
+
+        .falling-word {
+            position: fixed; font-family: 'Pretendard', sans-serif; font-size: 1.2rem; 
+            color: #ffffff; pointer-events: none; z-index: 50; white-space: nowrap; font-weight: 300;
+            letter-spacing: 2px;
+        }
+        .falling-word.user-wish { color: var(--point-teal); font-weight: 700; opacity: 0.9 !important; text-shadow: 0 0 10px var(--point-teal); }
+        .falling-word.colored-teal { color: var(--point-teal); font-weight: 700; opacity: 0.8 !important; }
+
+        .statement-section { padding: 120px 40px; background: rgba(0,0,0,0.4); pointer-events: all; position: relative; }
+        .statement-box { max-width: 700px; margin: 0 auto; border-left: 1px solid var(--point-teal); padding-left: 30px; }
+        .statement-box h3 { font-family: 'Megrim', cursive; color: var(--point-teal); font-size: 1.8rem; margin-bottom: 20px; }
+        .statement-box p { font-size: 0.9rem; line-height: 2; color: rgba(197, 186, 186, 0.6); word-break: keep-all; }
+
         .input-section { opacity: 0; transition: opacity 1.5s ease; }
         .input-section.visible { opacity: 1; pointer-events: all; }
 
@@ -37,286 +110,424 @@
             outline: none; font-weight: 300; transition: opacity 0.8s ease;
         }
 
-        /* 부적 결과창 스타일 */
         #result-overlay {
-            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            z-index: 100; opacity: 0; pointer-events: none; transition: opacity 2s ease;
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: radial-gradient(circle, rgba(0,128,128,0.05) 0%, rgba(20,25,24,1) 90%);
+            z-index: 100; opacity: 0; pointer-events: none; transition: opacity 2.5s ease;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
-        .talisman-card {
-            width: 320px; height: 520px; background: rgba(20, 25, 24, 0.95);
-            border: 2px solid #daa520; box-shadow: 0 0 40px rgba(218, 165, 32, 0.4);
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            padding: 30px; color: #daa520; font-family: 'Megrim', cursive; text-align: center;
+        .ui-decoration { position: absolute; font-size: 0.6rem; color: #daa520; letter-spacing: 4px; opacity: 0.4; text-transform: uppercase; }
+
+        .result-msg { 
+            position: absolute; top: 50%; left: 450px; transform: translateY(-50%); 
+            color: #daa520; font-size: 1.4rem; letter-spacing: 3px; text-align: left; 
+            line-height: 1.8; border-left: 2px solid rgba(218, 165, 32, 0.6); padding-left: 25px; width: 420px;
+            font-family: 'Pretendard', sans-serif; pointer-events: all;
+            font-weight: 400; text-shadow: 0 0 10px rgba(218, 165, 32, 0.2); word-break: keep-all;
         }
+
+        .button-group { position: absolute; bottom: 80px; display: flex; gap: 20px; z-index: 101; }
+        
+        .ritual-btn {
+            background: none; border: 1px solid #daa520; color: #daa520; padding: 12px 30px;
+            cursor: none; font-family: "Pretendard Variable", Pretendard, sans-serif;
+            font-weight: 500; letter-spacing: 1px; transition: all 0.3s ease; text-transform: uppercase; font-size: 14px;
+        }
+        .ritual-btn:hover { background: rgba(218, 175, 55, 0.2); box-shadow: 0 0 20px rgba(218, 175, 55, 0.4); }
+
+        #talisman-source { position: absolute; left: -9999px; top: 0; }
+        .talisman-canvas { width: 420px; height: 840px; background-color: #000; position: relative; border: 1px solid #2a2a2a; }
+        .seal-base { position: absolute; top: 150px; left: 50%; transform: translateX(-50%); width: 280px; height: 520px; background: #400; opacity: 0.4; filter: blur(40px); z-index: 1; }
+        .seal-main { position: absolute; top: 160px; left: 50%; transform: translateX(-50%); width: 250px; height: 480px; background: radial-gradient(circle at 50% 30%, #a00 0%, #200 100%); border-radius: 100px 100px 30px 30px; border: 1px solid #600; z-index: 2; box-shadow: inset 0 0 80px #100; opacity: 0.95; }
+        .sigil-svg-extreme { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; }
+        .ui-overlay { position: absolute; width: 100%; height: 100%; z-index: 30; pointer-events: none; color: #fff; font-family: 'Cinzel', serif; }
+        .vertical-title { position: absolute; top: 60px; right: 35px; writing-mode: vertical-rl; font-size: 38px; letter-spacing: 10px; color: #d4af37; text-shadow: 0 0 15px rgba(212, 175, 55, 0.6); font-weight: 900; }
+        .execution-zone { position: absolute; bottom: 50px; width: 100%; text-align: center; }
+        .trigger-word { display: block; margin-top: 15px; font-family: 'Noto Serif KR', serif; font-size: 40px; font-weight: 900; color: #ff0000; letter-spacing: 20px; filter: drop-shadow(0 0 10px #f00) drop-shadow(0 0 20px #f00); transform: scaleX(0.9); }
     </style>
 </head>
 <body>
+    <div id="custom-cursor"></div>
+    <div id="cursor-follower"></div>
+
+    <div id="loading-screen">
+        <button id="start-btn">INITIALIZE SYSTEM</button>
+        <div class="loader-text" style="display:none;" id="l-txt">SYNCHRONIZING_DATA...</div>
+        <div class="loader-bar-container" id="l-bar-c">
+            <div class="loader-bar" id="loader-bar"></div>
+        </div>
+        <div class="loader-percentage" id="loader-percentage">0%</div>
+    </div>
+
+    <div id="talisman-source">
+        <div class="talisman-canvas" id="capture-area">
+            <div class="seal-base"></div>
+            <div class="seal-main"></div>
+            <div class="ui-overlay">
+                <div class="system-meta">NEO_TALISMAN<br>AUTH: UNRESTRICTED<br>SYNC: 99.9%</div>
+                <div class="vertical-title" id="dynamic-main-text">.</div>
+                <div class="execution-zone"><span class="trigger-word">急急如律令</span></div>
+            </div>
+            <svg class="sigil-svg-extreme" viewBox="0 0 400 800">
+                <defs>
+                    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" stroke-width="0.2" stroke-opacity="0.1"/>
+                    </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#grid)" />
+                <g stroke="#ffffff" stroke-width="0.4" stroke-opacity="0.15">
+                    <circle cx="200" cy="400" r="190"/><circle cx="200" cy="400" r="170"/>
+                    <path d="M200 50 V750 M50 400 H350 M100 100 L300 700 M300 100 L100 700"/>
+                    <polygon points="200,150 350,400 200,650 50,400" fill="none"/>
+                </g>
+                <g stroke="#fff" fill="none" stroke-linecap="round">
+                    <path d="M140 100 Q200 50 260 100 M130 120 H270 M120 140 H280" stroke-width="3"/>
+                    <path d="M160 110 V160 M200 105 V160 M240 110 V160" stroke-width="1" stroke-opacity="0.5"/>
+                    <path d="M200 160 C350 250 400 350 200 450 S0 550 200 750" stroke-width="8" stroke-opacity="0.9"/>
+                    <path d="M200 160 C50 250 0 350 200 450 S400 550 200 750" stroke-width="2" stroke-opacity="0.4"/>
+                    <path d="M180 200 L220 240 M220 200 L180 240 M170 280 L230 320 M230 280 L170 320" stroke-width="1" stroke-opacity="0.6"/>
+                    <path d="M100 350 Q200 300 300 350 M100 550 Q200 600 300 550" stroke-width="1.5" stroke-dasharray="2 2"/>
+                </g>
+                <g font-family="'Noto Serif KR'" font-weight="900" font-size="72" text-anchor="middle">
+                    <text x="200" y="380" fill="#000" stroke="#fff" stroke-width="3" paint-order="stroke">萬事</text>
+                    <text x="200" y="480" fill="#000" stroke="#fff" stroke-width="3" paint-order="stroke">如意</text>
+                    <path d="M140 350 H260 M140 445 H260" stroke="#d4af37" stroke-width="1" stroke-opacity="0.5"/>
+                </g>
+                <g stroke="#d4af37" stroke-width="0.8">
+                    <path d="M60 250 V550 M340 250 V550" stroke-dasharray="10 5"/>
+                    <circle cx="60" cy="250" r="4"/><circle cx="60" cy="400" r="4"/><circle cx="60" cy="550" r="4"/>
+                    <circle cx="340" cy="250" r="4"/><circle cx="340" cy="400" r="4"/><circle cx="340" cy="550" r="4"/>
+                </g>
+                <g fill="#fff">
+                    <circle cx="150" cy="80" r="2.5"/><circle cx="180" cy="70" r="2.5"/><circle cx="210" cy="85" r="2.5"/>
+                    <circle cx="205" cy="115" r="2.5"/><circle cx="180" cy="135" r="2.5"/><circle cx="150" cy="130" r="2.5"/><circle cx="135" cy="105" r="2.5"/>
+                </g>
+            </svg>
+        </div>
+    </div>
 
     <div id="result-overlay">
-        <div class="talisman-card">
-            <p style="font-size: 0.7rem; letter-spacing: 8px; margin-bottom: 20px;">NEO-TALISMAN ARCHIVE</p>
-            <div style="width: 100%; height: 1px; background: linear-gradient(90deg, transparent, #daa520, transparent);"></div>
-            <h2 id="final-wish" style="font-size: 2.2rem; margin: 50px 0; word-break: keep-all;"></h2>
-            <div style="width: 100%; height: 1px; background: linear-gradient(90deg, transparent, #daa520, transparent);"></div>
-            <p style="font-size: 0.6rem; color: rgba(218,165,32,0.5); margin-top: 30px; line-height: 1.6;">ALGORITHM BLESSED<br>CURSE DECRYPTED</p>
+        <div id="hash-id" class="ui-decoration" style="top: 50px; right: 50px;">HASH_ID: #000000</div>
+        <div class="ui-decoration" style="top: 50px; left: 50px;">STATUS: SIGIL_STABILIZED</div>
+        <div class="result-msg">
+            당신만의 부적 이미지가 생성되었습니다.<br>
+            저장하기 버튼을 눌러 이미지를 다운로드하고<br>
+            행운을 소장하세요.
+        </div>
+        <div class="button-group">
+            <button class="ritual-btn" onclick="saveAsJPG()">저장하기</button>
+            <button class="ritual-btn" onclick="location.reload()">새 부적 만들기</button>
         </div>
     </div>
 
     <div id="content-wrapper">
-        <section class="section">
+        <section class="section" id="section-void">
             <div style="text-align: center;">
                 <h1>NEO-TALISMAN</h1>
-                <p style="letter-spacing: 4px; font-weight: bold; margin-top: 0px; color: rgba(255,255,255,0.7); font-size: 0.8rem;">DIGITAL CURSE & BLESSING ALGORITHM</p>
+                <div class="scroll-guide"><span>SCROLL TO SYNCHRONIZE</span><div class="arrow"></div></div>
             </div>
         </section>
-
+        <section class="section" id="section-manifesto">
+            <span class="word" style="left: 10%;" data-y="15vh">LUCKY_DAY_AHEAD</span>
+            <span class="word point" style="right: 15%;" data-y="10vh">福<small class="word-sub">행운,행복</small></span>
+            <span class="word kr" style="left: 20%;" data-y="45vh">如意吉祥<small class="word-sub">여의길상: 모든 일이 순조롭게 풀리며 운수가 좋고 경사스러운 일이 생김.</small></span>
+            <span class="word" style="right: 25%;" data-y="60vh">運</span>
+            <span class="word point" style="left: 5%;" data-y="75vh">萬事如意<small class="word-sub">만사여의: 세상의 모든 일이 자신의 마음먹은 대로 막힘없이 이루어지고 성취됨.</small></span>
+            <span class="word kr" style="right: 12%;" data-y="85vh">소원성취</span>
+        </section>
         <section class="section input-section" id="ritual-section">
-            <p id="ritual-status" style="font-weight: bold; font-size: 1.2rem; transition: opacity 0.5s;">당신의 고민 혹은 소망을 입력하십시오.</p>
+            <p id="ritual-status" style="font-weight: bold; font-size: 1.2rem;">당신의 소망을 입력하십시오.</p>
             <input type="text" placeholder="TYPE YOUR WISH..." id="wishInput" spellcheck="false">
+        </section>
+        <section class="statement-section">
+            <div class="statement-box">
+                <h3>PROJECT STATEMENT</h3>
+                <p>본 사이트는 전통적인 부적 제작 방식을 디지털 인터페이스로 구현한 웹 서비스입니다. 사용자가 직접 입력한 텍스트 데이터는 실시간 물리 엔진 및 그래픽 시스템과 결합하여 고유한 인장의 형태로 출력됩니다. 온라인에서 누구나 간편하게 자신만의 소망을 담은 부적 이미지를 생성하고 파일로 저장할 수 있도록 제작되었습니다.</p>
+            </div>
         </section>
     </div>
 
-    <script id="base-vs" type="x-shader/x-vertex">
-        varying vec2 vUv;
-        void main() { vUv = uv; gl_Position = vec4(position, 1.0); }
-    </script>
-
+    <script id="base-vs" type="x-shader/x-vertex">varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position, 1.0); }</script>
     <script id="bg-fs" type="x-shader/x-fragment">
-        precision highp float;
-        uniform float uTime;
-        varying vec2 vUv;
+        precision highp float; uniform float uTime; varying vec2 vUv;
         void main() {
-            vec2 p = vUv;
-            float t = uTime * 0.5;
-            for(float i=1.0; i<4.0; i++){
-                p.x += 0.2/i*sin(i*3.0*p.y+t);
-                p.y += 0.2/i*cos(i*3.0*p.x+t);
-            }
-            vec3 dark = vec3(0.02, 0.05, 0.1);
-            vec3 sand = vec3(0.4, 0.35, 0.25);
-            vec3 glow = vec3(0.2, 0.5, 0.55);
+            vec2 p = vUv; float t = uTime * 0.5;
+            for(float i=1.0; i<4.0; i++){ p.x += 0.2/i*sin(i*3.0*p.y+t); p.y += 0.2/i*cos(i*3.0*p.x+t); }
+            vec3 dark = vec3(0.02, 0.05, 0.1); vec3 sand = vec3(0.4, 0.35, 0.25); vec3 glow = vec3(0.2, 0.5, 0.55);
             float wave = sin(p.x + p.y + t) * 0.5 + 0.5;
-            vec3 col = mix(dark, sand, wave);
-            col += glow * pow(wave, 5.0) * 0.5;
-            gl_FragColor = vec4(col, 1.0);
+            vec3 col = mix(dark, sand, wave); col += glow * pow(wave, 5.0) * 0.5; gl_FragColor = vec4(col, 1.0);
         }
     </script>
-
     <script id="fluid-fs" type="x-shader/x-fragment">
-        precision highp float;
-        uniform sampler2D tPrev;
-        uniform vec2 uMouse;
-        uniform vec2 uVelo;
-        varying vec2 vUv;
+        precision highp float; uniform sampler2D tPrev; uniform vec2 uMouse; uniform vec2 uVelo; varying vec2 vUv;
         void main() {
-            vec2 uv = vUv;
-            vec4 prev = texture2D(tPrev, uv);
-            float dist = distance(uv, uMouse);
+            vec2 uv = vUv; vec4 prev = texture2D(tPrev, uv); float dist = distance(uv, uMouse);
             float m = smoothstep(0.08, 0.0, dist) * length(uVelo) * 10.0;
             vec2 offset = 1.0 / vec2(800.0, 600.0);
-            vec4 n = texture2D(tPrev, uv + vec2(0.0, offset.y));
-            vec4 s = texture2D(tPrev, uv - vec2(0.0, offset.y));
-            vec4 e = texture2D(tPrev, uv + vec2(offset.x, 0.0));
-            vec4 w = texture2D(tPrev, uv - vec2(offset.x, 0.0));
-            float nextVal = (n.r + s.r + e.r + w.r) * 0.5 - prev.g;
-            nextVal *= 0.97; 
-            gl_FragColor = vec4(nextVal + m, prev.r, 0.0, 1.0);
+            vec4 n = texture2D(tPrev, uv + vec2(0.0, offset.y)); vec4 s = texture2D(tPrev, uv - vec2(0.0, offset.y));
+            vec4 e = texture2D(tPrev, uv + vec2(offset.x, 0.0)); vec4 w = texture2D(tPrev, uv - vec2(offset.x, 0.0));
+            gl_FragColor = vec4(((n.r + s.r + e.r + w.r) * 0.5 - prev.g) * 0.97 + m, prev.r, 0.0, 1.0);
         }
     </script>
-
     <script id="display-fs" type="x-shader/x-fragment">
-        precision highp float;
-        uniform sampler2D tFluid;
-        uniform sampler2D tScene;
-        uniform sampler2D tBg;
-        varying vec2 vUv;
+        precision highp float; uniform sampler2D tFluid; uniform sampler2D tScene; uniform sampler2D tBg; varying vec2 vUv;
         void main() {
-            vec4 fluid = texture2D(tFluid, vUv);
-            float distortion = fluid.r * 0.08;
-            float rDist = distortion * 1.2;
-            float gDist = distortion * 1.0;
-            float bDist = distortion * 0.8;
-            float bgR = texture2D(tBg, vUv + rDist * 0.2).r;
-            float bgG = texture2D(tBg, vUv + gDist * 0.2).g;
-            float bgB = texture2D(tBg, vUv + bDist * 0.2).b;
-            vec4 bgColor = vec4(bgR, bgG, bgB, 1.0);
-            float scR = texture2D(tScene, vUv + rDist).r;
-            float scG = texture2D(tScene, vUv + gDist).g;
-            float scB = texture2D(tScene, vUv + bDist).b;
-            float scA = texture2D(tScene, vUv + gDist).a; 
-            vec4 sceneColor = vec4(scR, scG, scB, scA);
-            gl_FragColor = mix(bgColor, sceneColor, sceneColor.a);
+            vec4 fluid = texture2D(tFluid, vUv); float distortion = fluid.r * 0.08;
+            vec4 bgColor = vec4(texture2D(tBg, vUv + distortion * 1.2 * 0.2).r, texture2D(tBg, vUv + distortion * 0.2).g, texture2D(tBg, vUv + distortion * 0.8 * 0.2).b, 1.0);
+            vec4 sc = texture2D(tScene, vUv + distortion); gl_FragColor = mix(bgColor, sc, sc.a);
         }
     </script>
 
     <script>
-        const scene = new THREE.Scene();
+        // 커서 로직
+        const cursor = document.getElementById('custom-cursor');
+        const follower = document.getElementById('cursor-follower');
+        window.addEventListener('mousemove', (e) => {
+            gsap.to(cursor, { x: e.clientX, y: e.clientY, duration: 0 });
+            gsap.to(follower, { x: e.clientX - 25, y: e.clientY - 25, duration: 0.2 });
+        });
+
+        // 사운드 시스템
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let droneOsc;
+        function startDrone() {
+            droneOsc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            droneOsc.type = 'sawtooth';
+            droneOsc.frequency.setValueAtTime(40, audioCtx.currentTime);
+            // 저주파 필터로 부드럽게
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(100, audioCtx.currentTime);
+            
+            gain.gain.setValueAtTime(0, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.15, audioCtx.currentTime + 2);
+
+            droneOsc.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+            droneOsc.start();
+
+            // 로딩 바 진행도에 따라 주파수 상승 연출 (웅우웅우웅)
+            return { osc: droneOsc, gain: gain };
+        }
+
+        // 로딩 로직
+        document.getElementById('start-btn').addEventListener('click', function() {
+            this.style.display = 'none';
+            document.getElementById('l-txt').style.display = 'block';
+            document.getElementById('l-bar-c').style.display = 'block';
+            document.getElementById('loader-percentage').style.display = 'block';
+            
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            const drone = startDrone();
+
+            const loaderBar = document.getElementById('loader-bar');
+            const loaderPerc = document.getElementById('loader-percentage');
+            const loadingScreen = document.getElementById('loading-screen');
+            let progress = 0;
+
+            const interval = setInterval(() => {
+                progress += Math.random() * 2; 
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(interval);
+                    drone.gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1);
+                    setTimeout(() => {
+                        loadingScreen.style.opacity = '0';
+                        loadingScreen.style.visibility = 'hidden';
+                        drone.osc.stop();
+                    }, 500);
+                }
+                loaderBar.style.width = progress + '%';
+                loaderPerc.innerText = Math.floor(progress) + '%';
+                // 웅웅거리는 사운드 주파수를 로딩바에 맞춰 살짝 올림
+                drone.osc.frequency.setValueAtTime(40 + (progress * 0.6), audioCtx.currentTime);
+            }, 50);
+        });
+
+        const fallbackWords = [
+            "건강", "로또1등", "취뽀", "사랑", "합격", "무병장수", "코인떡상", "행복", "가족", "평화",
+            "입시대박", "돈벼락", "성공", "집값하락", "주식상승", "내집마련", "연애성공", "퇴사", "연봉인상",
+            "적게일하고많이벌기", "만사형통", "소원성취", "성적향상", "불로소득", "마음의평화",
+            "운수대통", "부자대박", "다이어트 성공", "탈모 치료", "아프지 않고 노후 보내기", "사이버무속", "호캉스", "부모님 용돈 넉넉히 드리기", "이직 성공", "염원", "승진하기",  "솔로 탈출", "로또1등", "창업 성공", "사랑", "합격", "무병장수", "코인떡상", "칼퇴근", "가족", "평화",
+            "입시대박", "돈벼락", "성공", "집값하락", "주식상승", "내집마련", "연애성공", "퇴사", "연봉인상",
+            "적게일하고많이벌기", "오로라 보러 가기", "소원성취", "성적향상", "불로소득", "불면증 탈출",
+            "한 달 살기", "부자대박", "티켓팅 성공", "유지경성", "금연 및 금주 성공", "미라클 모닝", "세계 일주"
+        ];
+        
+        function startFallingWords() {
+            const userWish = document.getElementById('wishInput').value;
+            if(userWish) { for(let i=0; i<5; i++) fallbackWords.push(userWish); }
+
+            setInterval(() => {
+                if(!isFinished) return;
+                const word = document.createElement('div');
+                const selectedWordText = fallbackWords[Math.floor(Math.random() * fallbackWords.length)];
+                word.innerText = selectedWordText;
+                
+                if (selectedWordText === userWish) {
+                    word.className = 'falling-word user-wish';
+                } else {
+                    const tealKeywords = ["운수대통", "천우신조", "부자대박", "소원성취"];
+                    if (tealKeywords.includes(selectedWordText)) word.className = 'falling-word colored-teal'; 
+                    else word.className = 'falling-word';
+                }
+                
+                word.style.left = Math.random() * 90 + 5 + 'vw';
+                word.style.top = '-10vh';
+                word.style.opacity = Math.random() * 0.15 + 0.02;
+                word.style.fontSize = (Math.random() * 1.5 + 1) + 'rem';
+                word.style.filter = `blur(${Math.random() * 3}px)`;
+                document.body.appendChild(word);
+                gsap.to(word, { top: '110vh', duration: Math.random() * 4 + 4, ease: "power2.in", onComplete: () => word.remove() });
+            }, 180); 
+        }
+
+        async function saveAsJPG() {
+            const captureArea = document.getElementById('capture-area');
+            const hashId = document.getElementById('hash-id').innerText;
+            const canvas = await html2canvas(captureArea, { useCORS: true, scale: 2, backgroundColor: "#000" });
+            const link = document.createElement('a');
+            link.download = `NEO-TALISMAN-${hashId.split('#')[1]}.jpg`;
+            link.href = canvas.toDataURL("image/jpeg", 0.9);
+            link.click();
+        }
+
+        async function createDataEntity(text) {
+            document.getElementById('dynamic-main-text').innerText = text;
+            const source = document.getElementById('capture-area');
+            const canvasImg = await html2canvas(source, { useCORS: true, scale: 2, backgroundColor: null, logging: false });
+            const texture = new THREE.CanvasTexture(canvasImg);
+            const geometry = new THREE.BoxGeometry(2.5, 5, 0.02); 
+            const materials = [
+                new THREE.MeshStandardMaterial({ color: 0x1a1a1a }), new THREE.MeshStandardMaterial({ color: 0x1a1a1a }),
+                new THREE.MeshStandardMaterial({ color: 0x1a1a1a }), new THREE.MeshStandardMaterial({ color: 0x1a1a1a }),
+                new THREE.MeshStandardMaterial({ map: texture, roughness: 0.8, metalness: 0.1 }),
+                new THREE.MeshStandardMaterial({ color: 0x050505 })
+            ];
+            const mesh = new THREE.Mesh(geometry, materials); mesh.visible = false;
+            document.getElementById('hash-id').innerText = `HASH: #` + text.split('').reduce((a, b) => a + b.charCodeAt(0), 0).toString(16).toUpperCase();
+            const reflection = mesh.clone();
+            reflection.scale.y = -1; reflection.position.y = -5.02;
+            reflection.material = materials.map(m => { const rm = m.clone(); rm.transparent = true; rm.opacity = 0.2; return rm; });
+            mainTalismanScene.add(reflection);
+            mesh.userData.reflection = reflection;
+            return mesh;
+        }
+
+        const scene = new THREE.Scene(); const mainTalismanScene = new THREE.Scene(); 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.autoClear = false;
+        renderer.setSize(window.innerWidth, window.innerHeight); renderer.autoClear = false;
         document.body.appendChild(renderer.domElement);
-
-        const sphereGroup = new THREE.Group();
-        const mainSphere = new THREE.Mesh(new THREE.IcosahedronGeometry(1.5, 1), new THREE.MeshBasicMaterial({ color: 0x008080, wireframe: true, transparent: true, opacity: 1.0 }));
-        sphereGroup.add(mainSphere);
-        for(let i = 1; i <= 3; i++) {
-            const glow = new THREE.Mesh(new THREE.IcosahedronGeometry(1.5 + (i * 0.02), 1), new THREE.MeshBasicMaterial({ color: 0x00ffff, wireframe: true, transparent: true, opacity: 0.4 / i, blending: THREE.AdditiveBlending }));
-            sphereGroup.add(glow);
-        }
+        const ambient = new THREE.AmbientLight(0xffffff, 0.6); scene.add(ambient);
+        const pointLight = new THREE.PointLight(0xffffff, 1.2, 100); pointLight.position.set(2, 3, 5); scene.add(pointLight);
+        mainTalismanScene.add(ambient.clone()); mainTalismanScene.add(pointLight.clone());
+        const sphereGroup = new THREE.Group(); 
+        sphereGroup.add(new THREE.Mesh(new THREE.IcosahedronGeometry(1.5, 1), new THREE.MeshBasicMaterial({ color: 0x008080, wireframe: true, transparent: true, opacity: 1.0 })));
         scene.add(sphereGroup);
-
         const talismans = [];
         const colors = [0xFF0000, 0xFFFF00, 0xFF1493, 0x00FF7F]; 
-
         for (let i = 0; i < 200; i++) {
-            const randomColor = colors[Math.floor(Math.random() * colors.length)];
-            const t = new THREE.Mesh(new THREE.PlaneGeometry(0.12, 0.25), new THREE.MeshBasicMaterial({ color: randomColor, side: THREE.DoubleSide, transparent: true, opacity: 0.7 }));
-            t.scale.setScalar(Math.random() * 1.2 + 0.4);
+            const t = new THREE.Mesh(new THREE.PlaneGeometry(0.12, 0.25), new THREE.MeshBasicMaterial({ color: colors[i%4], side: THREE.DoubleSide, transparent: true, opacity: 0.7 }));
             t.position.set((Math.random()-0.5)*15, (Math.random()-0.5)*20, (Math.random()-0.5)*10);
-            t.userData = { phase: Math.random() * Math.PI * 2, speed: Math.random() * 0.02 + 0.01, drift: Math.random() * 0.02, rotSpeed: Math.random() * 0.05 };
-            scene.add(t);
-            talismans.push(t);
+            t.userData = { phase: Math.random()*Math.PI*2, speed: Math.random()*0.02+0.01, drift: Math.random()*0.02 };
+            scene.add(t); talismans.push(t);
         }
         camera.position.z = 5;
-
-        const bgScene = new THREE.Scene();
-        const orthoCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-        const bgMat = new THREE.ShaderMaterial({
-            uniforms: { uTime: { value: 0 } },
-            vertexShader: document.getElementById('base-vs').textContent,
-            fragmentShader: document.getElementById('bg-fs').textContent
-        });
+        const bgScene = new THREE.Scene(); const orthoCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+        const bgMat = new THREE.ShaderMaterial({ uniforms: { uTime: { value: 0 } }, vertexShader: document.getElementById('base-vs').textContent, fragmentShader: document.getElementById('bg-fs').textContent });
         bgScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), bgMat));
-        let fboBg = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
+        const fboBg = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
         const sceneTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, { format: THREE.RGBAFormat });
         let fboA = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
         let fboB = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
         const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), null);
-
-        const fluidMat = new THREE.ShaderMaterial({
-            uniforms: { tPrev: { value: null }, uMouse: { value: new THREE.Vector2() }, uVelo: { value: new THREE.Vector2() } },
-            vertexShader: document.getElementById('base-vs').textContent,
-            fragmentShader: document.getElementById('fluid-fs').textContent
-        });
-        const displayMat = new THREE.ShaderMaterial({
-            uniforms: { tFluid: { value: null }, tScene: { value: null }, tBg: { value: null } },
-            vertexShader: document.getElementById('base-vs').textContent,
-            fragmentShader: document.getElementById('display-fs').textContent
-        });
+        const fluidMat = new THREE.ShaderMaterial({ uniforms: { tPrev: { value: null }, uMouse: { value: new THREE.Vector2() }, uVelo: { value: new THREE.Vector2() } }, vertexShader: document.getElementById('base-vs').textContent, fragmentShader: document.getElementById('fluid-fs').textContent });
+        const displayMat = new THREE.ShaderMaterial({ uniforms: { tFluid: { value: null }, tScene: { value: null }, tBg: { value: null } }, vertexShader: document.getElementById('base-vs').textContent, fragmentShader: document.getElementById('display-fs').textContent });
 
         let mouse = new THREE.Vector2(), lastMouse = new THREE.Vector2(), velo = new THREE.Vector2();
-        let scrollY = 0, time = 0;
+        let scrollY = 0, isRitualStarted = false, isFinished = false, ritualTime = 0, time = 0, dataEntity;
+        let isDragging = false;
 
-        let isRitualStarted = false;
-        let isFinished = false;
-        let ritualTime = 0;
-
+        window.addEventListener('mousedown', () => { 
+            if(isFinished) isDragging = true; 
+            gsap.to(follower, { scale: 0.7, duration: 0.2 });
+        });
+        window.addEventListener('mouseup', () => { 
+            isDragging = false; 
+            gsap.to(follower, { scale: 1, duration: 0.2 });
+        });
         window.addEventListener('mousemove', e => {
             mouse.set(e.clientX/window.innerWidth, 1 - e.clientY/window.innerHeight);
             velo.subVectors(mouse, lastMouse); lastMouse.copy(mouse);
-        });
-        window.addEventListener('scroll', () => {
-            if (isRitualStarted) return;
-            scrollY = window.scrollY;
-            const ritual = document.getElementById('ritual-section');
-            if (scrollY > 300) ritual.classList.add('visible');
-            else ritual.classList.remove('visible');
+            if (isDragging && isFinished && dataEntity) {
+                const rotX = e.movementY * 0.008; const rotY = e.movementX * 0.008;
+                dataEntity.rotation.y += rotY; dataEntity.rotation.x += rotX;
+                if(dataEntity.userData.reflection) { dataEntity.userData.reflection.rotation.y += rotY; dataEntity.userData.reflection.rotation.x -= rotX; }
+            }
         });
 
-        // 엔터 입력 시 의식 시작
-        document.getElementById('wishInput').addEventListener('keypress', (e) => {
+        window.addEventListener('scroll', () => {
+            scrollY = window.scrollY;
+            const vh = window.innerHeight;
+            const manifestoSection = document.getElementById('section-manifesto');
+            const rect = manifestoSection.getBoundingClientRect();
+            if (rect.top < vh * 0.85) { 
+                document.querySelectorAll('#section-manifesto .word').forEach((word, i) => {
+                    if (word.dataset.animating === "true") return;
+                    word.dataset.animating = "true";
+                    gsap.to(word, { top: word.getAttribute('data-y'), opacity: 1, scale: 1, filter: "blur(0px)", duration: 1.4, delay: i * 0.12, ease: "back.out(1.5)", onComplete: () => { gsap.to(word, { y: "+=15", duration: 2 + Math.random(), repeat: -1, yoyo: true, ease: "sine.inOut" }); }, overwrite: "auto" });
+                });
+            } else {
+                document.querySelectorAll('#section-manifesto .word').forEach((word) => { word.dataset.animating = "false"; gsap.killTweensOf(word); gsap.to(word, { opacity: 0, scale: 0.8, filter: "blur(10px)", top: "100vh", y: 0, duration: 0.8, overwrite: "auto" }); });
+            }
+            const ritual = document.getElementById('ritual-section');
+            if (scrollY > 300) ritual.classList.add('visible'); else ritual.classList.remove('visible');
+        });
+
+        document.getElementById('wishInput').addEventListener('keypress', async (e) => {
             if (e.key === 'Enter' && e.target.value.trim() !== "") {
-                isRitualStarted = true;
-                document.getElementById('final-wish').innerText = e.target.value;
-                e.target.disabled = true;
-                e.target.style.opacity = "0";
-                document.getElementById('ritual-status').style.opacity = "0";
+                document.getElementById('wishInput').style.opacity = "0";
+                document.getElementById('wishInput').style.pointerEvents = "none";
+                document.getElementById('ritual-status').innerText = "[TRANSMITTING DATA...]";
+                dataEntity = await createDataEntity(e.target.value);
+                mainTalismanScene.add(dataEntity); isRitualStarted = true;
             }
         });
 
         function animate(t) {
-            requestAnimationFrame(animate);
-            time = t * 0.001;
-            bgMat.uniforms.uTime.value = time;
-
+            requestAnimationFrame(animate); time = t * 0.001; bgMat.uniforms.uTime.value = time;
             if (isRitualStarted) {
                 ritualTime += 0.015;
-
-                if (ritualTime < 2.5) {
-                    // 1단계: 블랙홀 압축
-                    sphereGroup.rotation.y += ritualTime * 0.8;
-                    const compressScale = (1 + (scrollY * 0.001)) * Math.max(0.1, 1.0 - ritualTime * 0.4);
-                    sphereGroup.scale.setScalar(compressScale);
-
-                    talismans.forEach(tal => {
-                        tal.position.lerp(new THREE.Vector3(0, 0, 0), 0.12);
-                        tal.scale.multiplyScalar(0.92);
-                    });
-                    velo.x += (Math.random() - 0.5) * 0.4;
-                    velo.y += (Math.random() - 0.5) * 0.4;
-                } else if (ritualTime < 4.5) {
-                    // 2단계: 화이트아웃 폭발
-                    const blastScale = Math.pow(ritualTime - 2.4, 4) * 60;
-                    sphereGroup.scale.setScalar(blastScale);
-                    mainSphere.material.color.setHex(0xffffff);
-                    const whiteVal = Math.min(255, (ritualTime - 2.5) * 200);
-                    document.body.style.backgroundColor = `rgb(${whiteVal},${whiteVal},${whiteVal})`;
-                } else {
-                    // 3단계: 결과 노출
-                    if (!isFinished) {
-                        document.getElementById('result-overlay').style.opacity = "1";
-                        document.body.style.backgroundColor = "#141918";
-                        sphereGroup.visible = false;
-                        isFinished = true;
-                    }
+                if (ritualTime < 2.5) { sphereGroup.rotation.y += ritualTime * 1.5; sphereGroup.scale.setScalar(Math.max(0.01, 1.0 - ritualTime * 0.4)); talismans.forEach(tal => { tal.position.lerp(new THREE.Vector3(0,0,0), 0.1); tal.scale.multiplyScalar(0.9); }); }
+                else if (ritualTime < 4.5) { sphereGroup.scale.setScalar(Math.pow(ritualTime-2.4, 4)*80); document.body.style.backgroundColor = "white"; }
+                else if (!isFinished) {
+                    document.body.style.backgroundColor = "#141918"; sphereGroup.visible = false; dataEntity.visible = true;
+                    if(dataEntity.userData.reflection) dataEntity.userData.reflection.visible = true;
+                    document.getElementById('result-overlay').style.opacity = "1"; document.getElementById('result-overlay').style.pointerEvents = "all";
+                    gsap.to('#ritual-status', { opacity: 0, duration: 0.5 });
+                    gsap.from(dataEntity.scale, { x: 0, y: 0, z: 0, duration: 1.5, ease: "back.out(1.5)" }); 
+                    if(dataEntity.userData.reflection) gsap.from(dataEntity.userData.reflection.scale, { x: 0, y: 0, z: 0, duration: 1.5, ease: "back.out(1.5)" });
+                    isFinished = true; startFallingWords(); 
                 }
+                if (isFinished && dataEntity && !isDragging) { dataEntity.rotation.y += 0.002; if(dataEntity.userData.reflection) dataEntity.userData.reflection.rotation.y += 0.002; }
             } else {
-                sphereGroup.rotation.y += 0.01;
-                sphereGroup.scale.setScalar(1 + (scrollY * 0.001));
-
-                talismans.forEach(tal => {
-                    const data = tal.userData;
-                    tal.position.y -= data.speed + (scrollY * 0.00001);
-                    tal.position.x += Math.sin(time + data.phase) * data.drift;
-                    tal.rotation.x = Math.sin(time * 0.8 + data.phase) * 2;
-                    tal.rotation.z = Math.cos(time * 0.5 + data.phase) * 0.5;
-                    tal.rotation.y = Math.sin(time * 2.0 + data.phase * 0.5) * 1.5 * Math.PI; 
-                    if (tal.position.y < -10) { tal.position.y = 10; tal.position.x = (Math.random()-0.5)*15; }
-                });
+                sphereGroup.rotation.y += 0.01; sphereGroup.scale.setScalar(1 + (scrollY * 0.001));
+                talismans.forEach(tal => { const d = tal.userData; tal.position.y -= d.speed + (scrollY * 0.00001); tal.position.x += Math.sin(time + d.phase) * d.drift; tal.rotation.x = Math.sin(time * 0.8 + d.phase) * 2; tal.rotation.z = Math.cos(time * 0.5 + d.phase) * 0.5; tal.rotation.y = Math.sin(time * 2.0 + d.phase * 0.5) * 1.5 * Math.PI; if (tal.position.y < -10) { tal.position.y = 10; tal.position.x = (Math.random()-0.5)*15; } });
             }
-
-            renderer.setRenderTarget(fboBg);
-            renderer.render(bgScene, orthoCam);
-            renderer.setRenderTarget(sceneTarget);
-            renderer.clear();
-            renderer.render(scene, camera);
-
-            fluidMat.uniforms.tPrev.value = fboA.texture;
-            fluidMat.uniforms.uMouse.value = mouse;
-            fluidMat.uniforms.uVelo.value = velo;
-            quad.material = fluidMat;
-            renderer.setRenderTarget(fboB);
-            renderer.render(quad, orthoCam);
-
-            displayMat.uniforms.tFluid.value = fboB.texture;
-            displayMat.uniforms.tScene.value = sceneTarget.texture;
-            displayMat.uniforms.tBg.value = fboBg.texture;
-            quad.material = displayMat;
-            renderer.setRenderTarget(null);
-            renderer.render(quad, orthoCam);
-
-            let temp = fboA; fboA = fboB; fboB = temp;
-            velo.multiplyScalar(0.9);
+            renderer.setRenderTarget(fboBg); renderer.render(bgScene, orthoCam);
+            renderer.setRenderTarget(sceneTarget); renderer.clear(); renderer.render(scene, camera);
+            fluidMat.uniforms.tPrev.value = fboA.texture; fluidMat.uniforms.uMouse.value = mouse; fluidMat.uniforms.uVelo.value = velo;
+            quad.material = fluidMat; renderer.setRenderTarget(fboB); renderer.render(quad, orthoCam);
+            displayMat.uniforms.tFluid.value = fboB.texture; displayMat.uniforms.tScene.value = sceneTarget.texture; displayMat.uniforms.tBg.value = fboBg.texture;
+            quad.material = displayMat; renderer.setRenderTarget(null); renderer.render(quad, orthoCam);
+            if (isFinished) { renderer.clearDepth(); renderer.render(mainTalismanScene, camera); }
+            let temp = fboA; fboA = fboB; fboB = temp; velo.multiplyScalar(0.9);
         }
         animate(0);
-
-        window.addEventListener('resize', () => {
-            const w = window.innerWidth, h = window.innerHeight;
-            camera.aspect = w / h; camera.updateProjectionMatrix();
-            renderer.setSize(w, h);
-            sceneTarget.setSize(w, h); fboA.setSize(w, h); fboB.setSize(w, h); fboBg.setSize(w, h);
-        });
+        window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
     </script>
 </body>
 </html>
