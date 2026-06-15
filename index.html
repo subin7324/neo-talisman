@@ -26,7 +26,6 @@
             cursor: none; 
         }
 
-        /* [수정] 커서 스타일: 더 잘 보이도록 크기 및 글로우 강화 */
         #custom-cursor {
             position: fixed; width: 6px; height: 6px; background: var(--point-teal);
             border-radius: 50%; pointer-events: none; z-index: 10000;
@@ -38,9 +37,14 @@
             box-shadow: inset 0 0 10px rgba(0, 128, 128, 0.4), 0 0 15px rgba(0, 128, 128, 0.2);
         }
 
-        canvas { position: fixed; top: 0; left: 0; outline: none; z-index: 1; }
-        #content-wrapper { position: relative; z-index: 2; width: 100%; }
+        /* 오방색 천 캔버스와 Three.js 캔버스를 화면 전체에 꽉 채우고 빈틈없이 밀착 */
+        #bg-canvas, canvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: block; outline: none; }
+        #bg-canvas { z-index: 1; pointer-events: none; }
+        canvas { z-index: 2; pointer-events: none; }
+        
+        #content-wrapper { position: relative; z-index: 3; width: 100%; }
         .section { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; pointer-events: none; position: relative; }
+        #section-manifesto { height: 160vh; }
         
         h1 {
             font-family: 'Megrim', cursive; 
@@ -52,7 +56,6 @@
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.9), 0 0 15px rgba(218, 165, 32, 0.6), 0 0 30px rgba(0, 0, 0, 0.8);
         }
 
-        /* 로딩 화면 */
         #loading-screen {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background-color: #000; z-index: 9999;
@@ -64,7 +67,6 @@
         .loader-bar { position: absolute; top: 0; left: 0; width: 0%; height: 100%; background: var(--point-teal); box-shadow: 0 0 15px var(--point-teal); }
         .loader-percentage { color: var(--point-teal); font-size: 0.7rem; opacity: 0.6; display: none; }
         
-        /* 시작 버튼 (사운드 재생용) */
         #start-btn {
             background: none; border: 1px solid var(--point-teal); color: var(--point-teal);
             padding: 15px 40px; font-family: 'Courier New', Courier, monospace;
@@ -85,7 +87,7 @@
             filter: blur(10px); transform: scale(0.8);
         }
         .word.kr { font-family: 'Courier New', monospace; font-size: 1.2rem; letter-spacing: 12px; }
-        .word.point { color: var(--point-teal); opacity: 0.8 !important; }
+        .word.point { color: var(--point-teal); }
         .word-sub { display: block; font-size: 0.8rem; letter-spacing: 4px; color: rgba(255,255,255,0.4); margin-top: 10px; font-family: 'Pretendard', sans-serif; }
 
         .falling-word {
@@ -103,6 +105,8 @@
 
         .input-section { opacity: 0; transition: opacity 1.5s ease; }
         .input-section.visible { opacity: 1; pointer-events: all; }
+        .ritual-intro { text-align: center; color: rgba(255,255,255,0.72); font-family: 'Pretendard', sans-serif; font-size: 1.15rem; line-height: 2.1; letter-spacing: 0.18em; }
+        .ritual-intro strong { display: block; color: var(--point-teal); font-weight: 500; font-size: 2.8rem; margin-top: 18px; letter-spacing: 0.08em; }
 
         input {
             background: transparent; border: none; border-bottom: 2px solid var(--point-teal);
@@ -116,14 +120,30 @@
             z-index: 100; opacity: 0; pointer-events: none; transition: opacity 2.5s ease;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
+        #talisman-reveal {
+            position: absolute; width: 280px; height: 540px; z-index: 102;
+            display: none; align-items: center; justify-content: center; text-align: center;
+            border: 1px solid rgba(218, 165, 32, 0.45); color: #daa520;
+            background: rgba(0,0,0,0.18); font-size: 0.72rem; letter-spacing: 4px;
+            line-height: 2; pointer-events: all; cursor: none;
+        }
+        #talisman-reveal.visible { display: flex; }
+        .result-msg, .button-group { transition: opacity 0.8s ease; }
+        #result-overlay.awaiting-reveal .result-msg,
+        #result-overlay.awaiting-reveal .button-group { opacity: 0; pointer-events: none; }
         .ui-decoration { position: absolute; font-size: 0.6rem; color: #daa520; letter-spacing: 4px; opacity: 0.4; text-transform: uppercase; }
 
         .result-msg { 
-            position: absolute; top: 50%; left: 450px; transform: translateY(-50%); 
+            position: absolute; top: 50%; left: calc(50% + 240px); transform: translateY(-50%); 
             color: #daa520; font-size: 1.1rem; letter-spacing: 3px; text-align: left; 
             line-height: 1.8; border-left: 2px solid rgba(218, 165, 32, 0.6); padding-left: 25px; width: 420px;
             font-family: 'Pretendard', sans-serif; pointer-events: all;
             font-weight: 400; text-shadow: 0 0 10px rgba(218, 165, 32, 0.2); word-break: keep-all;
+        }
+
+        @media (max-width: 1200px) {
+            .result-msg { position: relative; left: 0; transform: none; top: 0; text-align: center; border-left: none; padding-left: 0; margin-top: 40px; width: 90%; }
+            .button-group { position: relative !important; bottom: 0 !important; margin-top: 30px; }
         }
 
         .button-group { position: absolute; bottom: 80px; display: flex; gap: 20px; z-index: 101; }
@@ -147,6 +167,8 @@
     </style>
 </head>
 <body>
+    <canvas id="bg-canvas"></canvas>
+
     <div id="custom-cursor"></div>
     <div id="cursor-follower"></div>
 
@@ -209,6 +231,7 @@
     <div id="result-overlay">
         <div id="hash-id" class="ui-decoration" style="top: 50px; right: 50px;">HASH_ID: #000000</div>
         <div class="ui-decoration" style="top: 50px; left: 50px;">STATUS: SIGIL_STABILIZED</div>
+        <div id="talisman-reveal">부적이 완성되었습니다.<br>클릭하여 확인하세요</div>
         <div class="result-msg">
             당신만의 부적 이미지가 생성되었습니다.<br>
             저장하기 버튼을 눌러 이미지를 다운로드하고<br>
@@ -235,9 +258,15 @@
             <span class="word point" style="left: 5%;" data-y="75vh">萬事如意<small class="word-sub">만사여의: 세상의 모든 일이 자신의 마음먹은 대로 막힘없이 이루어지고 성취됨.</small></span>
             <span class="word kr" style="right: 12%;" data-y="85vh">소원성취</span>
         </section>
+        <section class="section">
+            <p class="ritual-intro">
+                당신의 소망을 담아
+                <strong>단 하나의 부적을 만들어드립니다.</strong>
+            </p>
+        </section>
         <section class="section input-section" id="ritual-section">
             <p id="ritual-status" style="font-weight: bold; font-size: 1.2rem;">당신의 소망을 입력하십시오.</p>
-            <input type="text" placeholder="TYPE YOUR WISH..." id="wishInput" spellcheck="false">
+            <input type="text" placeholder="" id="wishInput" spellcheck="false">
         </section>
         <section class="statement-section">
             <div class="statement-box">
@@ -274,12 +303,317 @@
         void main() {
             vec4 fluid = texture2D(tFluid, vUv); float distortion = fluid.r * 0.08;
             vec4 bgColor = vec4(texture2D(tBg, vUv + distortion * 1.2 * 0.2).r, texture2D(tBg, vUv + distortion * 0.2).g, texture2D(tBg, vUv + distortion * 0.8 * 0.2).b, 1.0);
-            vec4 sc = texture2D(tScene, vUv + distortion); gl_FragColor = mix(bgColor, sc, sc.a);
+            vec4 sc = texture2D(tScene, vUv + distortion);
+            gl_FragColor = vec4(mix(bgColor.rgb, sc.rgb, sc.a), 0.82);
         }
     </script>
 
     <script>
-        // 커서 로직
+        // ==========================================
+        // 1. 성황당 오방색 천 시뮬레이션 데이터 및 로직 이식
+        // ==========================================
+        const bgCanvas = document.getElementById("bg-canvas");
+        const ctx = bgCanvas.getContext("2d");
+
+        let W, H, DPR;
+        let ribbons = [];
+        let lastTime = performance.now();
+
+        const palette = {
+            yellow: ["#c47f0c", "#543402", "#ffca52"],
+            white:  ["#f3ede0", "#9c907e", "#ffffff"],
+            blue:   ["#0f2273", "#020726", "#5069db"],
+            black:  ["#1a1a1f", "#000000", "#46444f"],
+            red:    ["#b31212", "#4a0303", "#ff5e5e"]
+        };
+
+        function clamp(v, a, b) {
+            return Math.max(a, Math.min(b, v));
+        }
+
+        class Ribbon {
+            constructor(x, y, length, width, color, index) {
+                this.x = x;
+                this.y = y; 
+                this.length = length;
+                this.width = width; 
+                this.color = color;
+                
+                this.phaseX = index * 1.85; 
+                this.speed = 1.1 + ((index % 3) * 0.25); 
+                this.swingRange = 55 + ((index % 4) * 15);
+                this.waveFreq = 2.2 + ((index % 2) * 0.8);
+                
+                this.points = [];
+                this.count = 45; 
+                this.gap = length / (this.count - 1);
+
+                for (let i = 0; i < this.count; i++) {
+                    const t = i / (this.count - 1);
+                    const startSway = Math.cos(0 - t * this.waveFreq + this.phaseX) * this.swingRange * t;
+                    const initialX = x + startSway;
+
+                    this.points.push({
+                        x: initialX,
+                        y: y + t * length,
+                        oldX: initialX,
+                        oldY: y + t * length,
+                        pinned: i === 0
+                    });
+                }
+            }
+
+            update(time, dt) {
+                const anchorX = this.x;
+                const anchorY = this.y;
+
+                const top = this.points[0];
+                top.x = anchorX;
+                top.y = anchorY;
+                top.oldX = anchorX;
+                top.oldY = anchorY;
+
+                for (let i = 1; i < this.points.length; i++) {
+                    const p = this.points[i];
+                    const t = i / (this.count - 1);
+
+                    const vx = (p.x - p.oldX) * 0.92;
+                    const vy = (p.y - p.oldY) * 0.92;
+
+                    p.oldX = p.x;
+                    p.oldY = p.y;
+
+                    const sway = (
+                        Math.cos(time * this.speed       - t * this.waveFreq + this.phaseX) * this.swingRange * t +
+                        Math.sin(time * this.speed * 0.6 - t * this.waveFreq * 1.3 + this.phaseX * 1.7) * this.swingRange * 0.3 * t
+                    );
+
+                    p.x = this.x + vx + sway; 
+                    p.y += vy + 0.18; 
+                }
+
+                for (let k = 0; k < 6; k++) {
+                    for (let i = 0; i < this.points.length - 1; i++) {
+                        const a = this.points[i];
+                        const b = this.points[i + 1];
+
+                        const dx = b.x - a.x;
+                        const dy = b.y - a.y;
+                        const dist = Math.hypot(dx, dy) || 1;
+                        const diff = (dist - this.gap) / dist;
+
+                        const ox = dx * diff * 0.45;
+                        const oy = dy * diff * 0.45;
+
+                        if (a.pinned) {
+                            b.x -= ox;
+                            b.y -= oy;
+                        } else {
+                            a.x += ox * 0.5;
+                            a.y += oy * 0.5;
+                            b.x -= ox * 0.5;
+                            b.y -= oy * 0.5;
+                        }
+                    }
+                }
+            }
+
+            getEdges(time) {
+                const left = [];
+                const right = [];
+                const center = [];
+
+                for (let i = 0; i < this.points.length; i++) {
+                    const p = this.points[i];
+                    const prev = this.points[Math.max(0, i - 1)];
+                    const next = this.points[Math.min(this.points.length - 1, i + 1)];
+
+                    const dx = next.x - prev.x;
+                    const dy = next.y - prev.y;
+                    const len = Math.hypot(dx, dy) || 1;
+
+                    const nx = -dy / len;
+                    const ny = dx / len;
+                    const t = i / (this.points.length - 1);
+
+                    const topGather = clamp(t / 0.12, 0, 1);
+                    const bottomGather = 1 - clamp((t - 0.92) / 0.08, 0, 1) * 0.4;
+                    
+                    const w = this.width * (0.5 + topGather * 0.5) * bottomGather;
+
+                    left.push({ x: p.x + nx * w * 0.5, y: p.y + ny * w * 0.5 });
+                    right.push({ x: p.x - nx * w * 0.5, y: p.y - ny * w * 0.5 });
+                    center.push({ x: p.x, y: p.y });
+                }
+
+                return { left, right, center };
+            }
+
+            draw(time) {
+                const [base, edge, hi] = this.color;
+                const { left, right, center } = this.getEdges(time);
+
+                ctx.save();
+                ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
+                ctx.shadowBlur = 22;
+                ctx.shadowOffsetX = 12;
+                ctx.shadowOffsetY = 12;
+
+                ctx.beginPath();
+                ctx.moveTo(left[0].x, left[0].y);
+                for (const p of left) ctx.lineTo(p.x, p.y);
+                for (let i = right.length - 1; i >= 0; i--) ctx.lineTo(right[i].x, right[i].y);
+                ctx.closePath();
+
+                const grad = ctx.createLinearGradient(center[0].x - this.width, 0, center[0].x + this.width, 0);
+                grad.addColorStop(0, edge);
+                grad.addColorStop(0.22, base);
+                grad.addColorStop(0.5, hi);
+                grad.addColorStop(0.78, base);
+                grad.addColorStop(1, edge);
+
+                ctx.globalAlpha = 1.45;
+                ctx.fillStyle = grad;
+                ctx.fill();
+
+                ctx.clip();
+                ctx.shadowColor = "transparent";
+
+                for (let f = 0; f < 6; f++) {
+                    const a = f / 5;
+                    ctx.beginPath();
+                    for (let i = 0; i < left.length; i++) {
+                        const x = left[i].x + (right[i].x - left[i].x) * a;
+                        const y = left[i].y + (right[i].y - left[i].y) * a;
+                        if (i === 0) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                    }
+                    ctx.strokeStyle = f % 2 === 0 ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.06)";
+                    ctx.lineWidth = 1.0;
+                    ctx.stroke();
+                }
+                ctx.restore();
+
+                this.drawDetailedKnots(center, time);
+            }
+
+            drawDetailedKnots(center, time) {
+                const [base, edge, hi] = this.color;
+                const bottom = center[center.length - 1];
+                const kw = this.width * 0.65; 
+
+                ctx.save();
+                
+                ctx.shadowColor = "rgba(0,0,0,0.45)";
+                ctx.shadowBlur = 8;
+                ctx.shadowOffsetY = 5;
+
+                ctx.fillStyle = edge;
+                ctx.beginPath();
+                ctx.moveTo(bottom.x - kw * 0.4, bottom.y - 12);
+                ctx.lineTo(bottom.x + kw * 0.5, bottom.y - 14);
+                ctx.lineTo(bottom.x + kw * 0.2, bottom.y - 2);
+                ctx.lineTo(bottom.x - kw * 0.5, bottom.y - 4);
+                ctx.closePath();
+                ctx.fill();
+
+                const knotGrad = ctx.createLinearGradient(bottom.x - kw, 0, bottom.x + kw, 0);
+                knotGrad.addColorStop(0, edge);
+                knotGrad.addColorStop(0.3, base);
+                knotGrad.addColorStop(0.5, hi);
+                knotGrad.addColorStop(0.7, base);
+                knotGrad.addColorStop(1, edge);
+                
+                ctx.fillStyle = knotGrad;
+                ctx.strokeStyle = "rgba(0,0,0,0.2)";
+                ctx.lineWidth = 1;
+                
+                ctx.beginPath();
+                ctx.roundRect(bottom.x - kw * 0.6, bottom.y - 10, kw * 1.2, 11, 4);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.shadowColor = "transparent";
+                const tasselCount = 5;
+                const spacing = (this.width * 0.24) / (tasselCount - 1 || 1);
+                
+                ctx.lineCap = "round";
+
+                for (let i = 0; i < tasselCount; i++) {
+                    const offsetFactor = (i - (tasselCount - 1) / 2);
+                    const baseFreq = time * this.speed * 1.2 + this.phaseX + i * 1.1;
+                    const swayTip  = Math.sin(baseFreq)               * (14 + Math.abs(offsetFactor) * 6);
+                    const swayMid  = Math.sin(baseFreq * 0.7 + 1.4)   * (6  + Math.abs(offsetFactor) * 3);
+                    const startX = bottom.x + offsetFactor * spacing;
+                    const startY = bottom.y;
+                    const tasselLen = 70 + (i % 3) * 25;
+
+                    ctx.beginPath();
+                    ctx.moveTo(startX, startY);
+                    ctx.bezierCurveTo(
+                        startX + swayMid * 0.5, startY + tasselLen * 0.32,
+                        startX + swayTip * 0.8, startY + tasselLen * 0.65,
+                        startX + swayTip,       startY + tasselLen
+                    );
+
+                    const tasselW = clamp(this.width * 0.10 * (1 - Math.abs(offsetFactor) * 0.15), 1.5, 6.0);
+                    
+                    ctx.strokeStyle = i % 2 === 0 ? base : edge;
+                    ctx.lineWidth = tasselW;
+                    ctx.stroke();
+                    
+                    if (i === 2) {
+                        ctx.strokeStyle = hi;
+                        ctx.lineWidth = tasselW * 0.45;
+                        ctx.stroke();
+                    }
+                }
+
+                ctx.restore();
+            }
+        }
+
+        function createRibbons() {
+            ribbons = [];
+            const fixedSpecs = [
+                { xPct: 0.05,  w: 62, lenPct: 1.55, col: palette.yellow },
+                { xPct: 0.14,  w: 42, lenPct: 1.40, col: palette.yellow },
+                { xPct: 0.28,  w: 8,  lenPct: 1.75, col: palette.white },
+                { xPct: 0.36,  w: 24, lenPct: 1.50, col: palette.blue },
+                { xPct: 0.415, w: 34, lenPct: 1.62, col: palette.black },
+                { xPct: 0.425, w: 18, lenPct: 1.35, col: palette.white },
+                { xPct: 0.435, w: 14, lenPct: 1.52, col: palette.yellow },
+                { xPct: 0.50,  w: 40, lenPct: 1.68, col: palette.blue },
+                { xPct: 0.60,  w: 36, lenPct: 1.42, col: palette.red },
+                { xPct: 0.68,  w: 58, lenPct: 1.60, col: palette.yellow },
+                { xPct: 0.69,  w: 20, lenPct: 1.38, col: palette.red },
+                { xPct: 0.81,  w: 44, lenPct: 1.54, col: palette.yellow },
+                { xPct: 0.85,  w: 42, lenPct: 1.66, col: palette.blue },
+                { xPct: 0.91,  w: 40, lenPct: 1.48, col: palette.yellow }
+            ];
+
+            fixedSpecs.forEach((spec, index) => {
+                const x = W * spec.xPct;
+                const y = -45; 
+                const len = H * spec.lenPct; 
+
+                ribbons.push(new Ribbon(x, y, len, spec.w, spec.col, index));
+            });
+        }
+
+        function resizeBackgroundCanvas() {
+            DPR = Math.min(window.devicePixelRatio || 1, 2);
+            W = window.innerWidth;
+            H = window.innerHeight;
+            bgCanvas.width = W * DPR;
+            bgCanvas.height = H * DPR;
+            ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+            createRibbons();
+        }
+
+        // ==========================================
+        // 2. 오리지널 UI 및 마우스 커서 스크립트
+        // ==========================================
         const cursor = document.getElementById('custom-cursor');
         const follower = document.getElementById('cursor-follower');
         window.addEventListener('mousemove', (e) => {
@@ -287,7 +621,6 @@
             gsap.to(follower, { x: e.clientX - 25, y: e.clientY - 25, duration: 0.2 });
         });
 
-        // 사운드 시스템
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         let droneOsc;
         function startDrone() {
@@ -295,7 +628,6 @@
             const gain = audioCtx.createGain();
             droneOsc.type = 'sawtooth';
             droneOsc.frequency.setValueAtTime(40, audioCtx.currentTime);
-            // 저주파 필터로 부드럽게
             const filter = audioCtx.createBiquadFilter();
             filter.type = 'lowpass';
             filter.frequency.setValueAtTime(100, audioCtx.currentTime);
@@ -308,12 +640,16 @@
             gain.connect(audioCtx.destination);
             droneOsc.start();
 
-            // 로딩 바 진행도에 따라 주파수 상승 연출 (웅우웅우웅)
             return { osc: droneOsc, gain: gain };
         }
 
-        // 로딩 로직
         document.getElementById('start-btn').addEventListener('click', function() {
+
+            window.bgm = new Audio('music.mp3');
+            const bgm = window.bgm;
+            bgm.loop = true;
+            bgm.volume = 0.4;
+            bgm.play();
             this.style.display = 'none';
             document.getElementById('l-txt').style.display = 'block';
             document.getElementById('l-bar-c').style.display = 'block';
@@ -341,7 +677,6 @@
                 }
                 loaderBar.style.width = progress + '%';
                 loaderPerc.innerText = Math.floor(progress) + '%';
-                // 웅웅거리는 사운드 주파수를 로딩바에 맞춰 살짝 올림
                 drone.osc.frequency.setValueAtTime(40 + (progress * 0.6), audioCtx.currentTime);
             }, 50);
         });
@@ -387,17 +722,17 @@
         async function saveAsJPG() {
             const captureArea = document.getElementById('capture-area');
             const hashId = document.getElementById('hash-id').innerText;
-            const canvas = await html2canvas(captureArea, { useCORS: true, scale: 2, backgroundColor: "#000" });
+            const canvas = await html2canvas(captureArea, { useCORS: true, scale: 3, backgroundColor: "#000" });
             const link = document.createElement('a');
             link.download = `NEO-TALISMAN-${hashId.split('#')[1]}.jpg`;
-            link.href = canvas.toDataURL("image/jpeg", 0.9);
+            link.href = canvas.toDataURL("image/jpeg", 1.0);
             link.click();
         }
 
         async function createDataEntity(text) {
             document.getElementById('dynamic-main-text').innerText = text;
             const source = document.getElementById('capture-area');
-            const canvasImg = await html2canvas(source, { useCORS: true, scale: 2, backgroundColor: null, logging: false });
+            const canvasImg = await html2canvas(source, { useCORS: true, scale: 3, backgroundColor: null, logging: false });
             const texture = new THREE.CanvasTexture(canvasImg);
             const geometry = new THREE.BoxGeometry(2.5, 5, 0.02); 
             const materials = [
@@ -416,39 +751,42 @@
             return mesh;
         }
 
+        // ==========================================
+        // 3. Three.js 메인 렌더링 시스템 파이프라인
+        // ==========================================
         const scene = new THREE.Scene(); const mainTalismanScene = new THREE.Scene(); 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
         renderer.setSize(window.innerWidth, window.innerHeight); renderer.autoClear = false;
         document.body.appendChild(renderer.domElement);
+        
         const ambient = new THREE.AmbientLight(0xffffff, 0.6); scene.add(ambient);
         const pointLight = new THREE.PointLight(0xffffff, 1.2, 100); pointLight.position.set(2, 3, 5); scene.add(pointLight);
         mainTalismanScene.add(ambient.clone()); mainTalismanScene.add(pointLight.clone());
-        const sphereGroup = new THREE.Group(); 
-        sphereGroup.add(new THREE.Mesh(new THREE.IcosahedronGeometry(1.5, 1), new THREE.MeshBasicMaterial({ color: 0x008080, wireframe: true, transparent: true, opacity: 1.0 })));
+
+        const sphereGroup = new THREE.Group();
+        sphereGroup.visible = false;
         scene.add(sphereGroup);
-        const talismans = [];
-        const colors = [0xFF0000, 0xFFFF00, 0xFF1493, 0x00FF7F]; 
-        for (let i = 0; i < 200; i++) {
-            const t = new THREE.Mesh(new THREE.PlaneGeometry(0.12, 0.25), new THREE.MeshBasicMaterial({ color: colors[i%4], side: THREE.DoubleSide, transparent: true, opacity: 0.7 }));
-            t.position.set((Math.random()-0.5)*15, (Math.random()-0.5)*20, (Math.random()-0.5)*10);
-            t.userData = { phase: Math.random()*Math.PI*2, speed: Math.random()*0.02+0.01, drift: Math.random()*0.02 };
-            scene.add(t); talismans.push(t);
-        }
+
+        // [지시 반영] 기존 3D 종이 조각 로직 완전 배제 (talismans 배열 선언 및 생성 부분 삭제)
+
         camera.position.z = 5;
         const bgScene = new THREE.Scene(); const orthoCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
         const bgMat = new THREE.ShaderMaterial({ uniforms: { uTime: { value: 0 } }, vertexShader: document.getElementById('base-vs').textContent, fragmentShader: document.getElementById('bg-fs').textContent });
         bgScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), bgMat));
-        const fboBg = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
-        const sceneTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, { format: THREE.RGBAFormat });
-        let fboA = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
-        let fboB = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
+        
+        const fboBg = new THREE.WebGLRenderTarget(800, 600);
+        const sceneTarget = new THREE.WebGLRenderTarget(800, 600, { format: THREE.RGBAFormat });
+        let fboA = new THREE.WebGLRenderTarget(800, 600); let fboB = new THREE.WebGLRenderTarget(800, 600);
+        
         const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), null);
         const fluidMat = new THREE.ShaderMaterial({ uniforms: { tPrev: { value: null }, uMouse: { value: new THREE.Vector2() }, uVelo: { value: new THREE.Vector2() } }, vertexShader: document.getElementById('base-vs').textContent, fragmentShader: document.getElementById('fluid-fs').textContent });
         const displayMat = new THREE.ShaderMaterial({ uniforms: { tFluid: { value: null }, tScene: { value: null }, tBg: { value: null } }, vertexShader: document.getElementById('base-vs').textContent, fragmentShader: document.getElementById('display-fs').textContent });
 
         let mouse = new THREE.Vector2(), lastMouse = new THREE.Vector2(), velo = new THREE.Vector2();
-        let scrollY = 0, isRitualStarted = false, isFinished = false, ritualTime = 0, time = 0, dataEntity;
+        let scrollY = 0, isRitualStarted = false, isTalismanPresented = false, isFinished = false, ritualTime = 0, time = 0, dataEntity;
         let isDragging = false;
 
         window.addEventListener('mousedown', () => { 
@@ -469,22 +807,85 @@
             }
         });
 
-        window.addEventListener('scroll', () => {
+        function updateScrollState() {
             scrollY = window.scrollY;
             const vh = window.innerHeight;
             const manifestoSection = document.getElementById('section-manifesto');
             const rect = manifestoSection.getBoundingClientRect();
-            if (rect.top < vh * 0.85) { 
-                document.querySelectorAll('#section-manifesto .word').forEach((word, i) => {
-                    if (word.dataset.animating === "true") return;
-                    word.dataset.animating = "true";
-                    gsap.to(word, { top: word.getAttribute('data-y'), opacity: 1, scale: 1, filter: "blur(0px)", duration: 1.4, delay: i * 0.12, ease: "back.out(1.5)", onComplete: () => { gsap.to(word, { y: "+=15", duration: 2 + Math.random(), repeat: -1, yoyo: true, ease: "sine.inOut" }); }, overwrite: "auto" });
-                });
-            } else {
-                document.querySelectorAll('#section-manifesto .word').forEach((word) => { word.dataset.animating = "false"; gsap.killTweensOf(word); gsap.to(word, { opacity: 0, scale: 0.8, filter: "blur(10px)", top: "100vh", y: 0, duration: 0.8, overwrite: "auto" }); });
-            }
+            const manifestoScrolled = Math.max(0, -rect.top);
+            const revealPoints = [0, 0.04, 0.18, 0.3, 0.43, 0.55];
+
+            document.querySelectorAll('#section-manifesto .word').forEach((word, i) => {
+                const shouldShow = rect.top < vh * 0.15 &&
+                    rect.bottom > 0 &&
+                    manifestoScrolled >= vh * revealPoints[i];
+                const isVisible = word.dataset.visible === "true";
+
+                if (shouldShow && !isVisible) {
+                    word.dataset.visible = "true";
+                    gsap.killTweensOf(word);
+                    gsap.to(word, {
+                        top: word.getAttribute('data-y'),
+                        opacity: word.classList.contains('point') ? 0.8 : 1,
+                        scale: 1,
+                        filter: "blur(0px)",
+                        duration: 1.1,
+                        ease: "back.out(1.5)",
+                        onComplete: () => {
+                            if (word.dataset.visible === "true") {
+                                gsap.to(word, { y: "+=15", duration: 2 + Math.random(), repeat: -1, yoyo: true, ease: "sine.inOut" });
+                            }
+                        },
+                        overwrite: "auto"
+                    });
+                } else if (!shouldShow && isVisible) {
+                    word.dataset.visible = "false";
+                    gsap.killTweensOf(word);
+                    gsap.to(word, {
+                        opacity: 0,
+                        scale: 0.8,
+                        filter: "blur(10px)",
+                        top: "100vh",
+                        y: 0,
+                        duration: 0.65,
+                        overwrite: "auto"
+                    });
+                }
+            });
+
             const ritual = document.getElementById('ritual-section');
-            if (scrollY > 300) ritual.classList.add('visible'); else ritual.classList.remove('visible');
+            const ritualRect = ritual.getBoundingClientRect();
+            if (ritualRect.top < vh * 0.8) ritual.classList.add('visible'); else ritual.classList.remove('visible');
+        }
+
+        window.addEventListener('scroll', updateScrollState);
+        updateScrollState();
+
+        document.getElementById('talisman-reveal').addEventListener('click', () => {
+            if (!isTalismanPresented || isFinished || !dataEntity) return;
+
+            document.getElementById('talisman-reveal').classList.remove('visible');
+
+            gsap.to(dataEntity.rotation, {
+                y: Math.PI * 2,
+                duration: 1.2,
+                ease: "power2.inOut",
+                onComplete: () => {
+                    dataEntity.rotation.y = 0;
+                    if(dataEntity.userData.reflection) dataEntity.userData.reflection.rotation.y = 0;
+                    isFinished = true;
+                    startFallingWords();
+                    document.getElementById('result-overlay').classList.remove('awaiting-reveal');
+                }
+            });
+
+            if(dataEntity.userData.reflection) {
+                gsap.to(dataEntity.userData.reflection.rotation, {
+                    y: Math.PI * 2,
+                    duration: 1.2,
+                    ease: "power2.inOut"
+                });
+            }
         });
 
         document.getElementById('wishInput').addEventListener('keypress', async (e) => {
@@ -492,42 +893,179 @@
                 document.getElementById('wishInput').style.opacity = "0";
                 document.getElementById('wishInput').style.pointerEvents = "none";
                 document.getElementById('ritual-status').innerText = "[TRANSMITTING DATA...]";
+
+                if (window.bgm) {
+                    const music2 = new Audio('music2.mp3');
+                    music2.loop = true;
+                    music2.volume = 0;
+                    music2.play();
+
+                    gsap.to(window.bgm, { volume: 0, duration: 2 });
+                    gsap.to(music2, { volume: 0.4, duration: 2 });
+
+                    window.bgm = music2;
+                }
+
+                const flash = document.createElement('div');
+                flash.style.position = 'fixed';
+                flash.style.inset = '0';
+                flash.style.background = `
+                    radial-gradient(circle at center,
+                    rgba(0,255,220,0.22) 0%,
+                    rgba(0,120,120,0.18) 18%,
+                    rgba(0,0,0,0.96) 72%)
+                `;
+                flash.style.backdropFilter = 'blur(22px)';
+                flash.style.pointerEvents = 'none';
+                flash.style.mixBlendMode = 'screen';
+                flash.style.zIndex = '90';
+                flash.style.opacity = '0';
+                document.body.appendChild(flash);
+
+                gsap.to(flash, {
+                    opacity: 1,
+                    duration: 1.8,
+                    ease: 'power3.out'
+                });
+
+                gsap.to(document.body, {
+                    filter: 'brightness(1.45) contrast(1.2)',
+                    duration: 1.6,
+                    yoyo: true,
+                    repeat: 1
+                });
+
+                ribbons.forEach(r => {
+                    r.swingRange *= 1.55;
+                    r.speed *= 1.18;
+                });
+
+                const pulse = setInterval(()=>{
+                    document.body.style.filter = Math.random() > 0.5
+                        ? 'brightness(1.35)'
+                        : 'brightness(0.72)';
+                }, 90);
+
+                await new Promise(resolve => setTimeout(resolve, 2400));
+
+                clearInterval(pulse);
+                document.body.style.filter = '';
+
+                ribbons.forEach(r => {
+                    r.swingRange /= 1.55;
+                    r.speed /= 1.18;
+                });
+
+                gsap.to(flash, {
+                    opacity: 0,
+                    duration: 1.8,
+                    ease: 'power2.inOut',
+                    onComplete: () => flash.remove()
+                });
+
                 dataEntity = await createDataEntity(e.target.value);
-                mainTalismanScene.add(dataEntity); isRitualStarted = true;
+                dataEntity.rotation.y = Math.PI;
+                if(dataEntity.userData.reflection) dataEntity.userData.reflection.rotation.y = Math.PI;
+                mainTalismanScene.add(dataEntity); 
+                isRitualStarted = true;
             }
         });
 
-        function animate(t) {
-            requestAnimationFrame(animate); time = t * 0.001; bgMat.uniforms.uTime.value = time;
+        function animate(now) {
+            requestAnimationFrame(animate);
+            const dt = Math.min((now - lastTime) / 1000, 0.033);
+            lastTime = now;
+            time = now * 0.001; 
+            
+            bgMat.uniforms.uTime.value = time;
+
+            // 1. 성황당 오방색 천 물리 연산 및 배경 드로잉 루프
+            ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+            ctx.fillStyle = "#000000";
+            ctx.fillRect(0, 0, W, H);
+
+            const viewY = scrollY * 0.72;
+            ctx.save();
+            ctx.translate(0, -viewY);
+            for (const r of ribbons) r.update(time, dt);
+            for (const r of ribbons) r.draw(time);
+            ctx.restore();
+
+            // 2. 오리지널 리추얼 및 의식 단계별 인터랙션 상태 기계 작동
             if (isRitualStarted) {
                 ritualTime += 0.015;
-                if (ritualTime < 2.5) { sphereGroup.rotation.y += ritualTime * 1.5; sphereGroup.scale.setScalar(Math.max(0.01, 1.0 - ritualTime * 0.4)); talismans.forEach(tal => { tal.position.lerp(new THREE.Vector3(0,0,0), 0.1); tal.scale.multiplyScalar(0.9); }); }
-                else if (ritualTime < 4.5) { sphereGroup.scale.setScalar(Math.pow(ritualTime-2.4, 4)*80); document.body.style.backgroundColor = "white"; }
-                else if (!isFinished) {
-                    document.body.style.backgroundColor = "#141918"; sphereGroup.visible = false; dataEntity.visible = true;
+
+                if (!isTalismanPresented && dataEntity) {
+                    dataEntity.visible = true;
                     if(dataEntity.userData.reflection) dataEntity.userData.reflection.visible = true;
-                    document.getElementById('result-overlay').style.opacity = "1"; document.getElementById('result-overlay').style.pointerEvents = "all";
-                    gsap.to('#ritual-status', { opacity: 0, duration: 0.5 });
-                    gsap.from(dataEntity.scale, { x: 0, y: 0, z: 0, duration: 1.5, ease: "back.out(1.5)" }); 
-                    if(dataEntity.userData.reflection) gsap.from(dataEntity.userData.reflection.scale, { x: 0, y: 0, z: 0, duration: 1.5, ease: "back.out(1.5)" });
-                    isFinished = true; startFallingWords(); 
+
+                    const resultOverlay = document.getElementById('result-overlay');
+                    resultOverlay.style.opacity = "1";
+                    resultOverlay.style.pointerEvents = "all";
+                    resultOverlay.classList.add('awaiting-reveal');
+                    document.getElementById('talisman-reveal').classList.add('visible');
+
+                    gsap.to('#ritual-status', { opacity: 0, duration: 0.2 });
+
+                    dataEntity.scale.set(0.01, 0.01, 0.01);
+                    dataEntity.visible = true;
+
+                    gsap.to(dataEntity.scale, {
+                        x: 1,
+                        y: 1,
+                        z: 1,
+                        duration: 0.38,
+                        ease: "back.out(2.6)"
+                    });
+
+                    if(dataEntity.userData.reflection) {
+                        dataEntity.userData.reflection.scale.set(0.01, 0.01, 0.01);
+                        dataEntity.userData.reflection.visible = true;
+
+                        gsap.to(dataEntity.userData.reflection.scale, {
+                            x: 1,
+                            y: 1,
+                            z: 1,
+                            duration: 0.38,
+                            ease: "back.out(2.6)"
+                        });
+                    }
+
+                    isTalismanPresented = true;
                 }
-                if (isFinished && dataEntity && !isDragging) { dataEntity.rotation.y += 0.002; if(dataEntity.userData.reflection) dataEntity.userData.reflection.rotation.y += 0.002; }
-            } else {
-                sphereGroup.rotation.y += 0.01; sphereGroup.scale.setScalar(1 + (scrollY * 0.001));
-                talismans.forEach(tal => { const d = tal.userData; tal.position.y -= d.speed + (scrollY * 0.00001); tal.position.x += Math.sin(time + d.phase) * d.drift; tal.rotation.x = Math.sin(time * 0.8 + d.phase) * 2; tal.rotation.z = Math.cos(time * 0.5 + d.phase) * 0.5; tal.rotation.y = Math.sin(time * 2.0 + d.phase * 0.5) * 1.5 * Math.PI; if (tal.position.y < -10) { tal.position.y = 10; tal.position.x = (Math.random()-0.5)*15; } });
+
+                if (isFinished && dataEntity && !isDragging) {
+                    dataEntity.rotation.y += 0.002;
+                    if(dataEntity.userData.reflection) dataEntity.userData.reflection.rotation.y += 0.002;
+                }
+            } else {// [지시 반영] 기존 종이 입자 떨어지는 루프 연산 완벽 차단
             }
+
+            // 3. Three.js 유체 버퍼 셰이더 렌더링 파이프라인 가동
             renderer.setRenderTarget(fboBg); renderer.render(bgScene, orthoCam);
             renderer.setRenderTarget(sceneTarget); renderer.clear(); renderer.render(scene, camera);
             fluidMat.uniforms.tPrev.value = fboA.texture; fluidMat.uniforms.uMouse.value = mouse; fluidMat.uniforms.uVelo.value = velo;
             quad.material = fluidMat; renderer.setRenderTarget(fboB); renderer.render(quad, orthoCam);
             displayMat.uniforms.tFluid.value = fboB.texture; displayMat.uniforms.tScene.value = sceneTarget.texture; displayMat.uniforms.tBg.value = fboBg.texture;
             quad.material = displayMat; renderer.setRenderTarget(null); renderer.render(quad, orthoCam);
-            if (isFinished) { renderer.clearDepth(); renderer.render(mainTalismanScene, camera); }
+            if (isTalismanPresented) { renderer.clearDepth(); renderer.render(mainTalismanScene, camera); }
             let temp = fboA; fboA = fboB; fboB = temp; velo.multiplyScalar(0.9);
         }
-        animate(0);
-        window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
+
+        // 초기화 및 리사이즈 연동
+        window.addEventListener('resize', () => {
+            // 성황당 오방색 천 캔버스 해상도 및 경계 보정
+            resizeBackgroundCanvas();
+            // Three.js 메인 카메라 및 렌더러 반응형 처리
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // 초기 연산 실행
+        resizeBackgroundCanvas();
+        animate(performance.now());
     </script>
 </body>
 </html>
